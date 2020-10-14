@@ -18,12 +18,6 @@ namespace Phedg1Studios {
                 new Vector3(1, 1, 1),
                 new Vector3(1, 1, 1),
             };
-            /*
-            List<ResourceType> modeleTypes = new List<ResourceType>() {
-                ResourceType.None,
-                ResourceType.Stone,
-            };
-            */
 
             public new static string GetTermSegment() {
                 return "RelocateStone";
@@ -47,13 +41,6 @@ namespace Phedg1Studios {
                 if (cells.Count == 2) {
                     World.inst.RemoveStone(cells[0], false);
                     cells[0].StorePostGenerationType();
-
-                    /*
-                    System.Reflection.MethodInfo methodInfo = typeof(MapEdit).GetMethod("ApplyBrush", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    methodInfo.Invoke(TerraformWitchSpells.mapEdit,
-                        new object[] { MapEdit.BrushMode.Stone, cells[1], Water.inst.waterMat.GetColor("_Color"), Water.inst.waterMat.GetColor("_DeepColor"), Water.inst.waterMat.GetColor("_SaltColor"), Water.inst.waterMat.GetColor("_SaltDeepColor")
-                    });
-                    */
 
                     cells[1].Type = ResourceType.Stone;
                     QueryForCriteria.SetCellModel(cells[1]);

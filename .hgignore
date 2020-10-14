@@ -5,6 +5,7 @@ obj/
 
 Build/**
 Dependencies/**
+Automatic Rebuild/Shared/**
 Terraform Witch Spells/Shared/**
 
 *.zip
@@ -12,3 +13,4 @@ Terraform Witch Spells/Shared/**
 
 *4K*
 *Zat*
+*1MB*

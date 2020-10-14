@@ -15,11 +15,6 @@ namespace Phedg1Studios {
             public override List<Vector3> sizes => new List<Vector3>() {
                 new Vector3(1, 1, 1),
             };
-            /*
-            List<ResourceType> modeleTypes = new List<ResourceType>() {
-                ResourceType.None,
-            };
-            */
 
             public new static string GetTermSegment() {
                 return "IncreaseFertility";

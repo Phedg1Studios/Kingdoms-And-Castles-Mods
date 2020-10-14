@@ -26,7 +26,6 @@ namespace Phedg1Studios {
             static private ObjectHighlighter hoverHighlighter;
 
             static private List<int> nullPos = new List<int>() { -1000000, -1000000, -1000000 };
-            //static private Cell nullCell;
             static private Building nullBuilding;
             static public int neighbourLandmassIdx;
             static private int previousLandmassIdx;
@@ -43,25 +42,12 @@ namespace Phedg1Studios {
             static public void SetCriterias(StreamerEffectQuery givenEffectQuery) {
                 updateCellSelectorMethod = typeof(GameUI).GetMethod("UpdateCellSelector", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 streamerEffectQuery = givenEffectQuery;
-                //resourceTypes = givenTypes;
                 criteriaIndex = 0;
                 clickedOnce = false;
                 previousLandmassIdx = -1;
                 leftMouseDownPos = new Vector3(nullPos[0], nullPos[1], nullPos[2]);
                 ResetTracking();
                 SfxSystem.PlayUiSelect();
-                /*
-                uiParent = BuildUI.inst.UIParent.GetComponent<CanvasGroup>();
-                if (uiParent == null) {
-                    uiParent = BuildUI.inst.UIParent.gameObject.AddComponent<CanvasGroup>();
-                }
-                //uiParent.interactable = false;
-                vrParent = BuildUI.inst.VRParent.GetComponent<CanvasGroup>();
-                if (vrParent == null) {
-                    vrParent = BuildUI.inst.VRParent.gameObject.AddComponent<CanvasGroup>();
-                }
-                */
-                //vrParent.interactable = false;
             }
 
 
@@ -128,12 +114,6 @@ namespace Phedg1Studios {
                     cellIsACell = true;
                     Vector2 newCell = new Vector2(cell.x, cell.z);
                     if (newCell != previousCell) {
-                        /*
-                        Vector3 size = streamerEffectQuery.sizes[criteriaIndex];
-                        if (cursorRotateable) {
-                            size = GetBounds();
-                        }
-                        */
                         Vector3 position = new Vector3(cell.x, 0, cell.z);
                         if (cell.OccupyingStructure.Count > 0) {
                             position = cell.OccupyingStructure[cell.OccupyingStructure.Count - 1].transform.position;
@@ -435,7 +415,6 @@ namespace Phedg1Studios {
                     }
                 } else {
                     cellValidNew = cellValid;
-                    //cellValidNew = false;
                 }
                 if (cellIsACell && cellValidNew != cellValid) {
                     cellValid = cellValidNew;
@@ -521,8 +500,6 @@ namespace Phedg1Studios {
                 if (GameUI.inst.CellSelector != null) {
                     GameUI.inst.SelectCell(null, true, false);
                 }
-                //BuildUI.inst.UIParent.GetComponent<CanvasGroup>().interactable = true;
-                //BuildUI.inst.VRParent.GetComponent<CanvasGroup>().interactable = true;
             }
 
 
@@ -538,45 +515,6 @@ namespace Phedg1Studios {
                     DestroyImmediate(cursorObject);
                     cursorRotateable = false;
                 }
-                /*
-                if (!setAsNull && resourceTypes[criteriaIndex] != ResourceType.None) {
-                    if (new List<ResourceType>() { ResourceType.UnusableStone, ResourceType.Stone, ResourceType.IronDeposit }.Contains(resourceTypes[criteriaIndex])) {
-                        nullCell = new Cell(nullPos[0], nullPos[2]);
-
-                        Dictionary<ResourceType, MapEdit.BrushMode> typeMapping = new Dictionary<ResourceType, MapEdit.BrushMode>() {
-                            { ResourceType.Stone, MapEdit.BrushMode.Stone },
-                            { ResourceType.IronDeposit, MapEdit.BrushMode.Iron },
-                        };
-                        System.Reflection.MethodInfo methodInfo = typeof(MapEdit).GetMethod("ApplyBrush", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        methodInfo.Invoke(TerraformWitchSpells.mapEdit,
-                            new object[] { typeMapping[resourceTypes[criteriaIndex]], nullCell, Water.inst.waterMat.GetColor("_Color"), Water.inst.waterMat.GetColor("_DeepColor"), Water.inst.waterMat.GetColor("_SaltColor"), Water.inst.waterMat.GetColor("_SaltDeepColor")
-                        });
-                        
-                        cursorObject = new GameObject();
-                        cursorObject.transform.parent = Player.inst.buildingContainer.transform;
-                        foreach (GameObject model in nullCell.Models) {
-                            Vector3 modelScaleOld = model.transform.localScale;
-                            Vector3 modelOffsetOld = model.transform.localPosition - new Vector3(nullPos[0], 0, nullPos[2]);
-                            model.transform.parent = cursorObject.transform;
-                            model.transform.localPosition = modelOffsetOld;
-                            model.transform.localScale = modelScaleOld;
-                        }
-
-                        MeshRenderer[] meshRenderersArray = cursorObject.GetComponentsInChildren<MeshRenderer>();
-                        List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
-                        foreach (MeshRenderer meshRenderer in meshRenderersArray) {
-                            meshRenderers.Add(meshRenderer);
-                        }
-                        SkinnedMeshRenderer[] skinnedMeshRenderersArray = cursorObject.GetComponentsInChildren<SkinnedMeshRenderer>();
-                        List<SkinnedMeshRenderer> skinnedMeshRenderers = new List<SkinnedMeshRenderer>();
-                        foreach (SkinnedMeshRenderer meshRenderer in skinnedMeshRenderersArray) {
-                            skinnedMeshRenderers.Add(meshRenderer);
-                        }
-                        highlighter = ObjectHighlighter.SetupOutlines(cursorObject, meshRenderers, skinnedMeshRenderers);
-                        //Util.LogComponentsOfType(typeof(ObjectHighlighter));
-                    }
-                }
-                */
                 if (!setAsNull) {
                     if (cells.Count > 0) {
                         Cell latestCell = cells[cells.Count - 1];
@@ -668,66 +606,6 @@ namespace Phedg1Studios {
 
 
 
-
-
-
-            /*
-            // Rotate cursor model
-            [HarmonyPatch(typeof(GameUI))]
-            [HarmonyPatch("RotateBuilding")]
-            [HarmonyPatch(new System.Type[] { typeof(Building), typeof(bool) })]
-            public static class GameUIRotateBuilding {
-                static bool Prefix(GameUI __instance, bool left) {
-                    if (criteriaIndex != -1) {
-                        if (cursorObject != null) {
-                            float angle = 90;
-                            if (left) {
-                                angle = -90;
-                            }
-                            for (int childIndex = 0; childIndex < cursorObject.transform.childCount; childIndex++) {
-                                cursorObject.transform.GetChild(childIndex).RotateAround(cursorObject.transform.position + new Vector3(0.5f, 0, 0.5f), new Vector3(0, 1, 0), angle);
-                            }
-                        }
-                        return false;
-                    }
-                    return true;
-                }
-            }
-            */
-
-            /*
-            // Return nullCell when coordinates match
-            [HarmonyPatch(typeof(World))]
-            [HarmonyPatch("GetCellData")]
-            [HarmonyPatch(new System.Type[] { typeof(int), typeof(int) })]
-            public static class GetCellData {
-                static void Postfix(World __instance, ref Cell __result, int x, int z) {
-                    if (criteriaIndex != -1) {
-                        if (nullCell != null) {
-                            if (x == nullCell.x && z == nullCell.z) {
-                                __result = nullCell;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Prevent error based on  nullCell being out of world bounds
-            [HarmonyPatch(typeof(FishSystem))]
-            [HarmonyPatch("ForceClearFish")]
-            public static class ForceClearFish {
-                static bool Prefix(FishSystem __instance, int x, int z) {
-                    if (criteriaIndex != -1) {
-                        if (nullCell != null) {
-                            if (x == nullCell.x && z == nullCell.z) {
-                                return false;
-                            }
-                        }
-                    }
-                    return true;
-                }
-            }
-            */
 
             // Display the tooltip for spell query
             [HarmonyPatch(typeof(BuildInfoUI))]
@@ -887,111 +765,6 @@ namespace Phedg1Studios {
                     return true;
                 }
             }
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            /*
-            // Prevent resource total buttons from working
-            [HarmonyPatch(typeof(InfoBase))]
-            [HarmonyPatch("OnClickedExamine")]
-            public static class InfoBaseOnClickExamine {
-                static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-
-            // Prevent job priorities button from working
-            [HarmonyPatch(typeof(UIWindowBase))]
-            [HarmonyPatch("SetVisible")]
-            public static class DecreeUISetVisible {
-                static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-
-            // Prevent tax rate buttons from working
-            [HarmonyPatch(typeof(Player))]
-            [HarmonyPatch("SetTaxRate")]
-            public static class PlayerSetTaxRate {
-                static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-
-            // Prevent villager happiness mouse over from working
-            [HarmonyPatch(typeof(HappinessUI))]
-            [HarmonyPatch("PointerEnter")]
-            public static class HappinessUIPointerEnter {
-                static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-
-            // Prevent villager happiness button from working
-            [HarmonyPatch(typeof(HappinessUI))]
-            [HarmonyPatch("OnClickedShowOverlay")]
-            public static class HappinessUIOnClickedShowOverlay {
-                static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-
-            // Prevent villager health mouse over from working
-            [HarmonyPatch(typeof(HealthUI))]
-            [HarmonyPatch("PointerEnter")]
-            public static class HealthUIPointerEnter {
-                static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-
-            // Prevent villager health button from working
-            [HarmonyPatch(typeof(HealthUI))]
-            [HarmonyPatch("OnClickedShowOverlay")]
-            public static class HealthUIOnClickedShowOverlay {
-                static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-
-            // Prevent Main Menu button from working
-            [HarmonyPatch(typeof(PlayingMode))]
-            [HarmonyPatch("OnClickedMenu")]
-            public static class PlayingModeOnClickMenu {
-                static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-            */
         }
     }
 }

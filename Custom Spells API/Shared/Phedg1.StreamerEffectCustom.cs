@@ -23,6 +23,7 @@ namespace Phedg1Studios {
                 EffectBanner.inst.ShowBannerGeneric(votable, ScriptLocalization.TheWitch, witchUI.witchSpr, spellData.locKey);
             }
 
+            // If spell is valid deduct gold and return true
             public bool PurchaseSpell() {
                 WitchHut.SpellData outSpell = null;
                 int num = witchHut.TryActivate((WitchHut.Spells)spellIndex, out outSpell);

@@ -117,6 +117,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Automatic Rebuild\Automatic Rebuild\Automatic Rebuild.cs" />
+    <Compile Include="Building Rotation Fix\Building Rotation Fix\Building Rotation Fix.cs" />
     <Compile Include="Custom Spells API\Example\CustomSpellsModExample.cs" />
     <Compile Include="Custom Spells API\Example\StreamerEffect_Example.cs" />
     <Compile Include="Custom Spells API\Custom Spells API\CustomSpellsAPI.cs" />

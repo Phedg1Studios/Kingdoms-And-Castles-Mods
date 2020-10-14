@@ -33,9 +33,19 @@ namespace Phedg1Studios {
                 TerraformWitchSpells.helper = helper;
                 Zat.Shared.Debugging.Helper = helper;
                 Application.logMessageReceived += OnLogMessageReceived;
+
+                //Log(LocalizationManager.CurrentLanguageCode);
+                util = gameObject.AddComponent<Util>();
+                queryForCriteria = gameObject.AddComponent<QueryForCriteria>();
+                mapEdit = new MapEdit();
+
                 var harmony = HarmonyInstance.Create("harmony");
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
                 SetSpells();
+            }
+
+            // Initialize variables
+            void SceneLoaded(KCModHelper helper) {
             }
 
             void Start() {
@@ -131,14 +141,7 @@ namespace Phedg1Studios {
                 });
             }
 
-            // Initialize variables
-            void SceneLoaded(KCModHelper helper) {
-                //Log(LocalizationManager.CurrentLanguageCode);
-                List<WitchHut.SpellData> spellDataNew = new List<WitchHut.SpellData>();
-                util = gameObject.AddComponent<Util>();
-                queryForCriteria = gameObject.AddComponent<QueryForCriteria>();
-                mapEdit = new MapEdit();
-            }
+
 
             static public void BackupSpeed() {
                 if (SpeedControlUI.inst.pauseButton.isOn) {
@@ -163,21 +166,6 @@ namespace Phedg1Studios {
                     __result.yearRemainingToCompleteMission = 0;
                     __result.latestSpell = WitchHut.Spells.NumSpells;
                     __result.lastMissionSuccess = true;
-                }
-            }
-            */
-
-            /*
-            // Add custom spell data
-            [HarmonyPatch(typeof(WitchHut))]
-            [HarmonyPatch("Awake")]
-            public static class WitchUIAwake {
-                static void Postfix(WitchHut __instance) {
-                    __instance.lastMissionSuccess = true;
-                    System.Reflection.MethodInfo methodInfo = typeof(WitchHut).GetMethod("ModifyRelationship", BindingFlags.NonPublic | BindingFlags.Instance);
-                    for (int test = 0; test < 10; test++) {
-                        methodInfo.Invoke(__instance, new object[1] { 1 });
-                    }
                 }
             }
             */

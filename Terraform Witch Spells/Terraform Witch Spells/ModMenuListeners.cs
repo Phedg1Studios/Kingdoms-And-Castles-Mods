@@ -4,8 +4,6 @@ using UnityEngine;
 using static Phedg1Studios.TerraformWitchSpells.Util;
 using Phedg1Studios.Shared;
 using Zat.Shared.ModMenu.Interactive;
-using Zat.Shared.ModMenu.API;
-using Zat;
 
 namespace Phedg1Studios {
     namespace TerraformWitchSpells {

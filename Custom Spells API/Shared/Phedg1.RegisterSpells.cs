@@ -129,8 +129,6 @@ namespace Phedg1Studios {
                         } else {
                             __result = Mathf.RoundToInt(__result / (1 + i / 10f));
                         }
-                    } else {
-                        //__result = Mathf.RoundToInt(__result / (i / 10f));
                     }
                 }
             }
