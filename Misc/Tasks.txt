@@ -1,0 +1,22 @@
+DONE	Upgrade spells menu to support unlimited spells.
+DONE	Add custom spells to spells menu.
+DONE	Override spell text.
+DONE	Calculate if cells are valid for spell.
+DONE	Show outline and colour based on cell validity.
+DONE	Show model when necessary.
+DONE	Make spels function.
+DONE	Add tooltip showing invalid reason.
+DONE	Make old model go away.
+DONE	Fix banner text.
+DONE	Enable outlines.
+DONE	Fix audio error.
+DONE	Fix original model not disappearing until reloading save.
+DONE	Fix spell buttons not working after loading game.
+DONE	Fix spelling still being active after loading game.
+DONE	Fix worker, build and main menu buttons still being interactable while spelling.
+DONE	Refactor custom spells functionality into separate mod.
+DONE	Integrate spell configuration with ModMenu.
+DONE	Create icons.
+
+
+

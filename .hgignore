@@ -1,0 +1,14 @@
+syntax: glob
+
+.vs/
+obj/
+
+Build/**
+Dependencies/**
+Terraform Witch Spells/Shared/**
+
+*.zip
+*.dll
+
+*4K*
+*Zat*
