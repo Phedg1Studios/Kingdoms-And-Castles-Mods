@@ -61,14 +61,13 @@ namespace Phedg1Studios {
             }
 
             // Upgrade spell list into a scroll
-            // Add buttons to menu for custom spells
             [HarmonyPatch(typeof(WitchUI))]
             [HarmonyPatch("Start")]
             public static class WitchUIStart {
                 [HarmonyPriority(200)]
                 static void Postfix(WitchUI __instance) {
                     SpellUIUpdater.UpdateUI(__instance.spellList);
-                    SpellUIUpdater.UpdateContentSize(__instance.spellList);
+                    GameUI.inst.witchUI.RefreshAvailableSpells();
                 }
             }
 

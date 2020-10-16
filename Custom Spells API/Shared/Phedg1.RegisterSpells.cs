@@ -47,9 +47,9 @@ namespace Phedg1Studios {
             [HarmonyPatch(typeof(WitchUI))]
             [HarmonyPatch("Start")]
             public static class WitchUIStart {
-                static void Postfix(WitchUI __instance) {
+                static void Postfix() {
                     additionalSpellButtons.Clear();
-                    GameObject buttonOriginal = __instance.spellList.transform.GetChild(0).gameObject;
+                    GameObject buttonOriginal = GameUI.inst.witchUI.spellList.transform.GetChild(0).gameObject;
                     for (int spellIndex = 0; spellIndex < spellData.Count; spellIndex++) {
                         GameObject buttonNew = GameObject.Instantiate(buttonOriginal, buttonOriginal.transform.parent);
                         buttonNew.transform.localScale = buttonOriginal.transform.localScale;
@@ -59,10 +59,10 @@ namespace Phedg1Studios {
                         int lambdaSpellIndex = spellIndex;
                         button.onClick.AddListener(() => {
                             System.Reflection.FieldInfo fieldInfo = typeof(WitchUI).GetField("witch", BindingFlags.NonPublic | BindingFlags.Instance);
-                            WitchHut witchHut = (WitchHut)fieldInfo.GetValue(__instance);
+                            WitchHut witchHut = (WitchHut)fieldInfo.GetValue(GameUI.inst.witchUI);
                             if (TryActivate(witchHut, spellDataOriginalCount + lambdaSpellIndex)) {
                                 StreamerEffectCustom currentSpell = Activator.CreateInstance(spellData[lambdaSpellIndex].spellImpl) as StreamerEffectCustom;
-                                currentSpell.witchUI = __instance;
+                                currentSpell.witchUI = GameUI.inst.witchUI;
                                 currentSpell.witchHut = witchHut;
                                 currentSpell.spellData = spellData[lambdaSpellIndex];
                                 currentSpell.spellIndex = spellDataOriginalCount + lambdaSpellIndex;
@@ -99,20 +99,22 @@ namespace Phedg1Studios {
                     foreach (object spellData in spellDataCollection) {
                         spellDataCount += 1;
                     }
-                    for (int spellIndex = 0; spellIndex < spellDataCount; spellIndex++) {
-                        SpellDataCustom spellDataCustom = witch.GetSpellData(spellIndex) as SpellDataCustom;
-                        if (spellDataCustom != null) {
-                            bool spellButtonsActive = witch.relationship >= spellDataCustom.relationship;
-                            if (!spellButtonsActive) {
-                            }
-                            __instance.spellList.transform.GetChild(spellIndex).gameObject.SetActive(spellButtonsActive);
-                            if (spellButtonsActive) {
-                                anySpellsAvailable = true;
+                    if (spellDataCount == __instance.spellList.transform.childCount) {
+                        for (int spellIndex = 0; spellIndex < spellDataCount; spellIndex++) {
+                            SpellDataCustom spellDataCustom = witch.GetSpellData(spellIndex) as SpellDataCustom;
+                            if (spellDataCustom != null) {
+                                bool spellButtonsActive = witch.relationship >= spellDataCustom.relationship;
+                                if (!spellButtonsActive) {
+                                }
+                                __instance.spellList.transform.GetChild(spellIndex).gameObject.SetActive(spellButtonsActive);
+                                if (spellButtonsActive) {
+                                    anySpellsAvailable = true;
+                                }
                             }
                         }
-                    }
-                    if (anySpellsAvailable) {
-                        __instance.spellContainer.gameObject.SetActive(true);
+                        if (anySpellsAvailable) {
+                            __instance.spellContainer.gameObject.SetActive(true);
+                        }
                     }
                 }
             }

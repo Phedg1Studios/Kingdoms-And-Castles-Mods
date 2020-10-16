@@ -37,6 +37,7 @@ namespace Phedg1Studios {
                 nullBuilding = buildingObject.AddComponent<Building>();
                 GameObject.Instantiate(new GameObject(), buildingObject.transform);
                 buildingObject.transform.GetChild(0).position = new Vector3(0, 0, 0);
+                DontDestroyOnLoad(buildingObject);
             }
 
             static public void SetCriterias(StreamerEffectQuery givenEffectQuery) {
@@ -380,6 +381,8 @@ namespace Phedg1Studios {
                             nullBuilding.transform.GetChild(0).eulerAngles = new Vector3(0, 0, 0);
                             GameUI.inst.RotateBuilding(nullBuilding, building.transform.GetChild(0).eulerAngles.y);
                         } else {
+                            Log(nullBuilding);
+                            Log(nullBuilding.transform);
                             nullBuilding.transform.position = new Vector3(cell.x, 0, cell.z);
                             nullBuilding.size = streamerEffectQuery.sizes[criteriaIndex];
                             if (cursorRotateable) {
@@ -469,36 +472,38 @@ namespace Phedg1Studios {
             }
 
             static public void StopSpelling(bool forceQuit = false) {
-                criteriaIndex = -1;
-                previousCell = new Vector2(-1000, -1000);
-                if (!forceQuit) {
-                    if (spellUsed) {
-                        streamerEffectQuery.ShowBanner();
-                    } else {
-                        SfxSystem.PlayUiCancel();
-                    }
-                    SpeedControlUI.inst.SetSpeed(TerraformWitchSpells.speedBackup);
-                    TerrainGen.inst.UpdateTextures();
-                    World.inst.CombineStone();
-                    foreach (Cell cell in cells) {
-                        for (int childIndex = 0; childIndex < World.inst.caveContainer.transform.childCount; childIndex++) {
-                            Vector3 position = World.inst.caveContainer.transform.GetChild(childIndex).position;
-                            if (Mathf.RoundToInt(position.x) == cell.x && Mathf.RoundToInt(position.z) == cell.z) {
-                                World.inst.caveContainer.transform.GetChild(childIndex).gameObject.SetActive(true);
+                if (criteriaIndex != -1) {
+                    criteriaIndex = -1;
+                    previousCell = new Vector2(-1000, -1000);
+                    if (!forceQuit) {
+                        if (spellUsed) {
+                            streamerEffectQuery.ShowBanner();
+                        } else {
+                            SfxSystem.PlayUiCancel();
+                        }
+                        SpeedControlUI.inst.SetSpeed(TerraformWitchSpells.speedBackup);
+                        TerrainGen.inst.UpdateTextures();
+                        World.inst.CombineStone();
+                        foreach (Cell cell in cells) {
+                            for (int childIndex = 0; childIndex < World.inst.caveContainer.transform.childCount; childIndex++) {
+                                Vector3 position = World.inst.caveContainer.transform.GetChild(childIndex).position;
+                                if (Mathf.RoundToInt(position.x) == cell.x && Mathf.RoundToInt(position.z) == cell.z) {
+                                    World.inst.caveContainer.transform.GetChild(childIndex).gameObject.SetActive(true);
+                                }
+                            }
+                            if (cell.OccupyingStructure.Count > 0) {
+                                cell.OccupyingStructure[cell.OccupyingStructure.Count - 1].transform.GetChild(0).gameObject.SetActive(true);
                             }
                         }
-                        if (cell.OccupyingStructure.Count > 0) {
-                            cell.OccupyingStructure[cell.OccupyingStructure.Count - 1].transform.GetChild(0).gameObject.SetActive(true);
-                        }
                     }
-                }
-                spellUsed = false;
-                SpeedControlUI.inst.ButtonsInteractable(true);
-                streamerEffectQuery = null;
-                cells.Clear();
-                SetCursorPrefab(true);
-                if (GameUI.inst.CellSelector != null) {
-                    GameUI.inst.SelectCell(null, true, false);
+                    spellUsed = false;
+                    SpeedControlUI.inst.ButtonsInteractable(true);
+                    streamerEffectQuery = null;
+                    cells.Clear();
+                    SetCursorPrefab(true);
+                    if (GameUI.inst.CellSelector != null) {
+                        GameUI.inst.SelectCell(null, true, false);
+                    }
                 }
             }
 
@@ -680,7 +685,7 @@ namespace Phedg1Studios {
             [HarmonyPatch(typeof(PlayingMode))]
             [HarmonyPatch("OnClickedMenu")]
             public static class PlayingModeOnClickMenu {
-                static void Postfix() {
+                static void Prefix() {
                     StopSpelling();
                 }
             }

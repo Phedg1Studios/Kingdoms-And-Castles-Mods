@@ -125,6 +125,7 @@
     <Compile Include="Custom Spells API\Shared\Phedg1.RegisterSpells.cs" />
     <Compile Include="Custom Spells API\Shared\Phedg1.SpellDataCustom.cs" />
     <Compile Include="Custom Spells API\Shared\Phedg1.StreamerEffectCustom.cs" />
+    <Compile Include="Menu Keep Speed\Menu Keep Speed.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Custom Spells API\Custom Spells API\SpellUIUpdater.cs" />
     <Compile Include="Terraform Witch Spells\Shared\Zat.Debugging.cs" />
