@@ -13,9 +13,8 @@ namespace Phedg1Studios {
             static public int criteriaIndex = -1;
             static private StreamerEffectQuery streamerEffectQuery;
             static private List<List<Cell>> cells = new List<List<Cell>>();
-            static private List<int> previousCell = new List<int>() { -1000000, -1000000 };
+            static private List<int> previousCell;
             static private List<Cell> previousCells = new List<Cell>();
-            static public bool clickedOnce = false;
             static private bool spellUsed = false;
             static private bool cellValid = false;
             static private string cellInvalidReason = "";
@@ -25,7 +24,7 @@ namespace Phedg1Studios {
             static public string cursorColour = "red";
             static private System.Reflection.MethodInfo updateCellSelectorMethod;
             static private Vector3 leftMouseDownPos;
-            static private List<int> leftMouseDownCell = new List<int>() { -1000000, -1000000 };
+            static private List<int> leftMouseDownCell;
             static private ObjectHighlighter highlighter;
             static private ObjectHighlighter hoverHighlighter;
             static public List<int> neighbourIdxs = new List<int>();
@@ -33,6 +32,7 @@ namespace Phedg1Studios {
             static private Building nullBuilding;
             static private int previousLandmassIdx;
             static private bool cursorRotateable = false;
+            static private bool buildTabClicked = false;
 
             private void Awake() {
                 GameObject buildingObject = new GameObject();
@@ -48,8 +48,9 @@ namespace Phedg1Studios {
                 updateCellSelectorMethod = typeof(GameUI).GetMethod("UpdateCellSelector", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 streamerEffectQuery = givenEffectQuery;
                 criteriaIndex = 0;
-                clickedOnce = false;
+                buildTabClicked = false;
                 previousLandmassIdx = -1;
+                previousCells = new List<Cell>();
                 leftMouseDownPos = new Vector3(nullPos[0], nullPos[1], nullPos[2]);
                 leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
                 ResetTracking();
@@ -66,7 +67,7 @@ namespace Phedg1Studios {
             private void LateUpdate() {
                 if (criteriaIndex != -1) {
                     if (PointingSystem.GetPointer().GetPrimaryDown()) {
-                        if (!GameUI.inst.WasEventConsumed()) {
+                        if (!GameUI.inst.WasEventConsumed() && !buildTabClicked) {
                             Cell cell = World.inst.GetCellData(GameUI.inst.GridPointerIntersection());
                             if (cell != null) {
                                 leftMouseDownCell = new List<int>() { cell.x, cell.z };
@@ -85,9 +86,10 @@ namespace Phedg1Studios {
                     //GameUI.inst.UpdateTooltips();
 
                     if (PointingSystem.GetPointer().GetPrimaryUp()) {
-                        if (!LevelUpUI.IsShowing() && !Cam.inst.IsDragging() && ((double)Vector3.Distance(leftMouseDownPos, Input.mousePosition) < 4.0 || streamerEffectQuery.draggable)) {
+                        if (!LevelUpUI.IsShowing() && !Cam.inst.IsDragging() && leftMouseDownPos.x != nullPos[0] && ((double)Vector3.Distance(leftMouseDownPos, Input.mousePosition) < 4.0 || streamerEffectQuery.IsDragable())) {
                             DoPrimaryClick();
                         }
+                        leftMouseDownPos = new Vector3(nullPos[0], nullPos[1], nullPos[2]);
                     }
 
                     if (ConfigurableControls.inst.GetInputActionKeyDown(InputActions.RotateBuilding)) {
@@ -105,6 +107,9 @@ namespace Phedg1Studios {
                     }
                     if (hoverHighlighter != null) {
                         hoverHighlighter.SetOutlineImmediate(0);
+                    }
+                    if (buildTabClicked) {
+                        buildTabClicked = false;
                     }
                 }
             }
@@ -143,7 +148,7 @@ namespace Phedg1Studios {
                         List<int> corner = Util.GetCornerOfBuilding(position, originalSize, rotation, ref size);
                         List<int> direction = new List<int>() { 1, 1 };
 
-                        if (streamerEffectQuery.draggable && leftMouseDownCell[0] >= 0 && leftMouseDownCell[1] >= 0) {
+                        if (streamerEffectQuery.IsDragable() && leftMouseDownCell[0] >= 0 && leftMouseDownCell[1] >= 0) {
                             corner = new List<int>() { leftMouseDownCell[0], leftMouseDownCell[1] };
                             size = new Vector3(Mathf.Abs(cell.x - leftMouseDownCell[0]) + 1, 0, Mathf.Abs(cell.z - leftMouseDownCell[1]) + 1);
                             if (size.x != 1) {
@@ -156,14 +161,15 @@ namespace Phedg1Studios {
                         int landmassGold = World.GetLandmassOwner(World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx).Gold;
                         int cost = 0;
                         List<Cell> validCells = new List<Cell>();
+                        int validCellsCount = 0;
                         Dictionary<int, Dictionary<int, int>> elevationCells = new Dictionary<int, Dictionary<int, int>>();
                         neighbourIdxs.Clear();
                         for (int x = 0; x < size.x; x++) {
                             for (int z = 0; z < size.z; z++) {
-                                if (cellValidNew && landmassGold >= cost + streamerEffectQuery.spellData.cost && (streamerEffectQuery.draggable == false || validCells.Count == 0 || streamerEffectQuery.spellData.cooldown == 0)) {
-                                    int neighbourLandmassIdx = -1;
+                                if (cellValidNew && landmassGold >= cost + streamerEffectQuery.spellData.cost && (streamerEffectQuery.IsDragable() == false || validCells.Count == 0 || streamerEffectQuery.spellData.cooldown == 0)) {
                                     bool thisCellValid = true;
                                     Cell selectionCell = World.inst.GetCellData(new Vector3(corner[0] + x * direction[0], 0, corner[1] + z * direction[1]));
+                                    int neighbourLandmassIdx = selectionCell.landMassIdx;
                                     cellInvalidReason = "";
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("fertilityNotMax")) {
                                         if (selectionCell.fertile >= 2 || selectionCell.Type != ResourceType.None) {
@@ -405,22 +411,22 @@ namespace Phedg1Studios {
                                         cellInvalidReason = "outOfBounds";
                                     }
 
-                                    if (!thisCellValid && !streamerEffectQuery.draggable) {
+                                    if (!thisCellValid && !streamerEffectQuery.IsDragable()) {
                                         cellValidNew = false;
                                     }
                                     if (thisCellValid) {
                                         validCells.Add(selectionCell);
                                         neighbourIdxs.Add(neighbourLandmassIdx);
                                         cost += streamerEffectQuery.spellData.cost;
+                                        validCellsCount += 1;
                                     }
                                 }
                             }
                         }
                         resourceAmount.Set(FreeResourceType.Gold, cost);
-                        if (streamerEffectQuery.draggable) {
+                        if (streamerEffectQuery.IsDragable()) {
                             cellValidNew = validCells.Count > 0;
                         }
-                        
                         if (cellValid) {
                             List<Cell> previousCellsAdjusted = new List<Cell>();
                             foreach (Cell previousCellCell in previousCells) {
@@ -445,8 +451,6 @@ namespace Phedg1Studios {
                             cells.RemoveAt(cells.Count - 1);
                         }
                         
-
-                        TerrainGen.inst.UpdateTextures();
                         if (cursorObject != null) {
                             cursorObject.transform.position = GameUI.inst.GridPointerIntersection();
                         }
@@ -454,7 +458,7 @@ namespace Phedg1Studios {
                             streamerEffectQuery.RollbackData(validCells);
                         }
 
-                        if (cellValidNew && !streamerEffectQuery.draggable && cell.OccupyingStructure.Count > 0) {
+                        if (cellValidNew && !streamerEffectQuery.IsDragable() && cell.OccupyingStructure.Count > 0) {
                             Building building = cell.OccupyingStructure[cell.OccupyingStructure.Count - 1];
                             nullBuilding.transform.position = building.transform.position;
                             nullBuilding.size = building.size;
@@ -462,7 +466,7 @@ namespace Phedg1Studios {
                             nullBuilding.transform.GetChild(0).eulerAngles = new Vector3(0, 0, 0);
                             GameUI.inst.RotateBuilding(nullBuilding, building.transform.GetChild(0).eulerAngles.y);
                         } else {
-                            if (streamerEffectQuery.draggable && leftMouseDownCell[0] >= 0 && leftMouseDownCell[1] >= 0) {
+                            if (streamerEffectQuery.IsDragable() && leftMouseDownCell[0] >= 0 && leftMouseDownCell[1] >= 0) {
                                 nullBuilding.transform.position = new Vector3(corner[0], 0, corner[1]);
                                 nullBuilding.size = size;
                             } else {
@@ -522,25 +526,21 @@ namespace Phedg1Studios {
             }
 
             static public void DoPrimaryClick() {
-                if (clickedOnce) {
-                    //LogCellData();
-                    if (cellValid) {
-                        cells.Add(previousCells);
-                        previousCells = new List<Cell>();
-                        previousLandmassIdx = cells[cells.Count - 1][0].landMassIdx;
-                        streamerEffectQuery.OnClick(cells[cells.Count - 1], criteriaIndex);
-                        QueryNext();
-                    } else {
-                        if (streamerEffectQuery.draggable) {
-                            previousCell = new List<int>() { nullPos[0], nullPos[2] };
-                            leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
-                            nullBuilding.size = streamerEffectQuery.sizes[criteriaIndex];
-                            nullBuilding.transform.GetChild(0).localPosition = new Vector3(nullBuilding.size.x / 2f, 0, nullBuilding.size.z / 2f);
-                            EvaluateCell();
-                        }
-                    }
+                //LogCellData();
+                if (cellValid) {
+                    cells.Add(previousCells);
+                    previousCells = new List<Cell>();
+                    previousLandmassIdx = cells[cells.Count - 1][0].landMassIdx;
+                    streamerEffectQuery.OnClick(cells[cells.Count - 1], criteriaIndex);
+                    QueryNext();
                 } else {
-                    clickedOnce = true;
+                    if (streamerEffectQuery.IsDragable()) {
+                        previousCell = new List<int>() { nullPos[0], nullPos[2] };
+                        leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
+                        nullBuilding.size = streamerEffectQuery.sizes[criteriaIndex];
+                        nullBuilding.transform.GetChild(0).localPosition = new Vector3(nullBuilding.size.x / 2f, 0, nullBuilding.size.z / 2f);
+                        EvaluateCell();
+                    }
                 }
             }
 
@@ -549,7 +549,7 @@ namespace Phedg1Studios {
                     criteriaIndex += 1;
                     ResetTracking();
                 } else {
-                    if (RegisterSpells.TryActivate(streamerEffectQuery.witchHut, streamerEffectQuery.spellIndex, previousCells.Count)) {
+                    if (RegisterSpells.TryActivate(streamerEffectQuery.witchHut, streamerEffectQuery.spellIndex, cells[cells.Count - 1].Count)) {
                         WitchHut.SpellData outSpell = null;
                         int ladmassId = World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx;
                         int num = streamerEffectQuery.witchHut.TryActivate((WitchHut.Spells)streamerEffectQuery.spellIndex, out outSpell);
@@ -606,9 +606,7 @@ namespace Phedg1Studios {
                                 }
                             }
                         }
-                        if (cells.Count > 0) {
-                            streamerEffectQuery.UpdateDisplay(cells[cells.Count - 1]);
-                        }
+                        streamerEffectQuery.UpdateDisplay(previousCells);
                     }
                     spellUsed = false;
                     SpeedControlUI.inst.ButtonsInteractable(true);
@@ -741,7 +739,7 @@ namespace Phedg1Studios {
                     }
                     
                     if (criteriaIndex != -1) {
-                        bool showCost = streamerEffectQuery.draggable && previousCells.Count > 1 && streamerEffectQuery.spellData.cost > 0;
+                        bool showCost = streamerEffectQuery.IsDragable() && previousCells.Count > 1 && streamerEffectQuery.spellData.cost > 0;
                         __instance.buildDescParent.gameObject.SetActive(cursorRotateable);
                         __instance.buildRuleParent.gameObject.SetActive(selectionInvalid);
                         __instance.buildCostParent.gameObject.SetActive(showCost);
@@ -829,20 +827,13 @@ namespace Phedg1Studios {
             }
 
             // Prevent building tab buttons from working
-            [HarmonyPatch(typeof(BuildUI))]
-            [HarmonyPatch("SetTabActive")]
-            [HarmonyPatch(new System.Type[] { typeof(string) })]
-            public static class BuildUISetTabActive {
+            [HarmonyPatch(typeof(GameUI))]
+            [HarmonyPatch("OnShowBuildTabClicked")]
+            public static class GameUIOnShowBuildTabClicked {
                 static bool Prefix() {
-                    return DontRunIfSpelling();
-                }
-            }
-
-            // Prevent building tab buttons from working
-            [HarmonyPatch(typeof(BuildUI))]
-            [HarmonyPatch("SetTabVRActive")]
-            public static class BuildUISetTabVRActive {
-                static bool Prefix() {
+                    if (criteriaIndex != -1) {
+                        buildTabClicked = true;
+                    }
                     return DontRunIfSpelling();
                 }
             }

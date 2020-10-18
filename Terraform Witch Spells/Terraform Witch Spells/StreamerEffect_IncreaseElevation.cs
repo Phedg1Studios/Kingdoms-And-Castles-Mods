@@ -38,6 +38,7 @@ namespace Phedg1Studios {
                         cell.Type = ResourceType.None;
                         TerrainGen.inst.SetLandTile(cell.x, cell.z);
                         TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile);
+                        TerrainGen.inst.UpdateTileFertility(cell.x, cell.z);
                     } else {
                         cell.deepWater = false;
                         TerrainGen.inst.SetTileHeight(cell, TerrainGen.waterHeightShallow - SRand.value * 0.1f);
@@ -49,6 +50,7 @@ namespace Phedg1Studios {
                     }
                     cellIndex += 1;
                 }
+                TerrainGen.inst.UpdateTextures();
             }
 
             public override void RollbackData(List<Cell> cells) {

@@ -32,16 +32,20 @@ namespace Phedg1Studios {
             public override void UpdateDataAndDisplay(List<List<Cell>> cells, bool isClick) {
                 foreach (Cell cell in cells[0]) {
                     TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile + 1);
+                    TerrainGen.inst.UpdateTileFertility(cell.x, cell.z);
                 }
+                TerrainGen.inst.UpdateTextures();
             }
 
             public override void RollbackData(List<Cell> cells) {
                 foreach (Cell cell in cells) {
                     TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile - 1);
+                    TerrainGen.inst.UpdateTileFertility(cell.x, cell.z);
                 }
             }
 
             public override void UpdateDisplay(List<Cell> cells) {
+                TerrainGen.inst.UpdateTextures();
             }
 
             public override void OnStart() {

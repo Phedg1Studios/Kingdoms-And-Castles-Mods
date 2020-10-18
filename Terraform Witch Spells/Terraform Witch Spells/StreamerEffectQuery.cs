@@ -25,6 +25,13 @@ namespace Phedg1Studios {
                 witchUI.gameObject.SetActive(false);
                 BuildUI.inst.SetVisible(false);
             }
+
+            public bool IsDragable() {
+                if (draggable && spellData.cooldown == 0) {
+                    return true;
+                }
+                return false;
+            }
         }
     }
 }

@@ -77,8 +77,10 @@ namespace Phedg1Studios {
                     } else {
                         TerrainGen.inst.SetLandTile(cell.x, cell.z);
                         TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile);
+                        TerrainGen.inst.UpdateTileFertility(cell.x, cell.z);
                     }
                 }
+                TerrainGen.inst.UpdateTextures();
             }
 
             private void UpdateTileColour(Cell cell) {

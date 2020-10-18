@@ -8,7 +8,7 @@ namespace Phedg1Studios {
     namespace PauseMenuRememberSpeed {
         public class PauseMenuRememberSpeed : MonoBehaviour {
             static public KCModHelper helper;
-            static private List<int> speeds = new List<int>() { 1, 1, 1, 1, 1, 1 };
+            static private List<int> speeds = new List<int>() { 1, 1, 1, 1 };
             static private int mostRecent = 1;
             static private int nextMostRecent = 1;
             static private System.Type timeManagerType;
@@ -33,6 +33,16 @@ namespace Phedg1Studios {
                 speeds.RemoveAt(0);
             }
 
+            // Stop spelling when opening the pause menu
+            [HarmonyPatch(typeof(PlayingMode))]
+            [HarmonyPatch("OnClickedMenu")]
+            public static class PlayingModeOnClickMenu {
+                static void Postfix() {
+                    speeds.RemoveAt(speeds.Count - 1);
+                    speeds.Insert(0, 0);
+                }
+            }
+
             [HarmonyPatch(typeof(SpeedControlUI))]
             [HarmonyPatch("SetSpeed")]
             public static class SpeedControlUISetSpeed {
@@ -42,7 +52,6 @@ namespace Phedg1Studios {
 
                 static void Postfix(SpeedControlUI __instance, int idx) {
                     __instance.pauseButton.transform.parent.GetComponent<UnityEngine.UI.ToggleGroup>().allowSwitchOff = false;
-                    UpdateSpeed(idx);
                 }
             }
 
@@ -56,8 +65,8 @@ namespace Phedg1Studios {
             [HarmonyPatch("Shutdown")]
             public static class MainMenuModeShutdown {
                 static void Postfix() {
-                    nextMostRecent = speeds[0];
-                    mostRecent = speeds[1];
+                    nextMostRecent = speeds[1];
+                    mostRecent = speeds[2];
                     ResumeSpeeds();
                 }
             }
