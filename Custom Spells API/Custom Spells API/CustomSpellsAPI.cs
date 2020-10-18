@@ -23,7 +23,7 @@ namespace Phedg1Studios {
             [HarmonyPatch(typeof(WitchHut.WitchHutSaveData))]
             [HarmonyPatch("Unpack")]
             public static class WitchHutSaveDatatUnpack {
-                static void Postfix(WitchUI __instance, ref WitchHut __result, WitchHut obj) {
+                static void Postfix(WitchHut.WitchHutSaveData __instance, ref WitchHut __result, WitchHut obj) {
                     System.Reflection.FieldInfo fieldInfo = typeof(WitchHut).GetField("spellData", BindingFlags.NonPublic | BindingFlags.Instance);
                     ICollection spellDataCollection = fieldInfo.GetValue(__result) as ICollection;
                     List<WitchHut.SpellData> spellDataList = new List<WitchHut.SpellData>();

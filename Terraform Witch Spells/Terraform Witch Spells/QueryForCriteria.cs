@@ -1,6 +1,7 @@
 ﻿using Harmony;
 using UnityEngine;
 using Assets;
+using Assets.Code;
 using System.Collections.Generic;
 using cakeslice;
 using Phedg1Studios.Shared;
@@ -11,23 +12,25 @@ namespace Phedg1Studios {
         public class QueryForCriteria : MonoBehaviour {
             static public int criteriaIndex = -1;
             static private StreamerEffectQuery streamerEffectQuery;
-            static private List<Cell> cells = new List<Cell>();
-            static private Vector2 previousCell;
+            static private List<List<Cell>> cells = new List<List<Cell>>();
+            static private List<int> previousCell = new List<int>() { -1000000, -1000000 };
+            static private List<Cell> previousCells = new List<Cell>();
             static public bool clickedOnce = false;
             static private bool spellUsed = false;
             static private bool cellValid = false;
             static private string cellInvalidReason = "";
+            static private ResourceAmount resourceAmount = new ResourceAmount();
 
             static public GameObject cursorObject;
             static public string cursorColour = "red";
             static private System.Reflection.MethodInfo updateCellSelectorMethod;
             static private Vector3 leftMouseDownPos;
+            static private List<int> leftMouseDownCell = new List<int>() { -1000000, -1000000 };
             static private ObjectHighlighter highlighter;
             static private ObjectHighlighter hoverHighlighter;
-
+            static public List<int> neighbourIdxs = new List<int>();
             static private List<int> nullPos = new List<int>() { -1000000, -1000000, -1000000 };
             static private Building nullBuilding;
-            static public int neighbourLandmassIdx;
             static private int previousLandmassIdx;
             static private bool cursorRotateable = false;
 
@@ -37,6 +40,7 @@ namespace Phedg1Studios {
                 nullBuilding = buildingObject.AddComponent<Building>();
                 GameObject.Instantiate(new GameObject(), buildingObject.transform);
                 buildingObject.transform.GetChild(0).position = new Vector3(0, 0, 0);
+                nullBuilding.dragPlacementMode = Building.DragPlacementMode.Rectangle;
                 DontDestroyOnLoad(buildingObject);
             }
 
@@ -47,6 +51,7 @@ namespace Phedg1Studios {
                 clickedOnce = false;
                 previousLandmassIdx = -1;
                 leftMouseDownPos = new Vector3(nullPos[0], nullPos[1], nullPos[2]);
+                leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
                 ResetTracking();
                 SfxSystem.PlayUiSelect();
             }
@@ -58,9 +63,19 @@ namespace Phedg1Studios {
 
 
 
-            private void Update() {
+            private void LateUpdate() {
                 if (criteriaIndex != -1) {
-                    if (Input.GetKeyDown(KeyCode.Escape)) {
+                    if (PointingSystem.GetPointer().GetPrimaryDown()) {
+                        if (!GameUI.inst.WasEventConsumed()) {
+                            Cell cell = World.inst.GetCellData(GameUI.inst.GridPointerIntersection());
+                            if (cell != null) {
+                                leftMouseDownCell = new List<int>() { cell.x, cell.z };
+                            }
+                            leftMouseDownPos = Input.mousePosition;
+                        }
+                    }
+
+                    if (ConfigurableControls.inst.GetInputActionKeyDown(InputActions.EscapeButtonBehavior)) {
                         StopSpelling();
                     } else {
                         EvaluateCell();
@@ -68,15 +83,15 @@ namespace Phedg1Studios {
 
                     GameUI.inst.UpdateUIScaling();
                     //GameUI.inst.UpdateTooltips();
-                    if (PointingSystem.GetPointer().GetPrimaryDown()) {
-                        if (!GameUI.inst.WasEventConsumed()) {
-                            leftMouseDownPos = Input.mousePosition;
-                        }
-                    }
+
                     if (PointingSystem.GetPointer().GetPrimaryUp()) {
-                        if (!LevelUpUI.IsShowing() && !Cam.inst.IsDragging() && (double)Vector3.Distance(leftMouseDownPos, Input.mousePosition) < 4.0) {
+                        if (!LevelUpUI.IsShowing() && !Cam.inst.IsDragging() && ((double)Vector3.Distance(leftMouseDownPos, Input.mousePosition) < 4.0 || streamerEffectQuery.draggable)) {
                             DoPrimaryClick();
                         }
+                    }
+
+                    if (ConfigurableControls.inst.GetInputActionKeyDown(InputActions.RotateBuilding)) {
+                        GameUI.inst.TryRotateHeldBuilding(true);
                     }
 
                     updateCellSelectorMethod.Invoke(GameUI.inst, new object[0]);
@@ -113,10 +128,10 @@ namespace Phedg1Studios {
                 Cell cell = World.inst.GetCellData(GameUI.inst.GridPointerIntersection());
                 if (cell != null) {
                     cellIsACell = true;
-                    Vector2 newCell = new Vector2(cell.x, cell.z);
-                    if (newCell != previousCell) {
+                    List<int> newCell = new List<int>() { cell.x, cell.z };
+                    if (newCell[0] != previousCell[0] || newCell[1] != previousCell[1]) {
                         Vector3 position = new Vector3(cell.x, 0, cell.z);
-                        if (cell.OccupyingStructure.Count > 0) {
+                        if (cursorRotateable && cell.OccupyingStructure.Count > 0) {
                             position = cell.OccupyingStructure[cell.OccupyingStructure.Count - 1].transform.position;
                         }
                         Vector3 originalSize = streamerEffectQuery.sizes[criteriaIndex];
@@ -126,21 +141,39 @@ namespace Phedg1Studios {
                         }
                         Vector3 size = new Vector3();
                         List<int> corner = Util.GetCornerOfBuilding(position, originalSize, rotation, ref size);
+                        List<int> direction = new List<int>() { 1, 1 };
 
+                        if (streamerEffectQuery.draggable && leftMouseDownCell[0] >= 0 && leftMouseDownCell[1] >= 0) {
+                            corner = new List<int>() { leftMouseDownCell[0], leftMouseDownCell[1] };
+                            size = new Vector3(Mathf.Abs(cell.x - leftMouseDownCell[0]) + 1, 0, Mathf.Abs(cell.z - leftMouseDownCell[1]) + 1);
+                            if (size.x != 1) {
+                                direction[0] = Mathf.Abs(cell.x - leftMouseDownCell[0]) / (cell.x - leftMouseDownCell[0]);
+                            }
+                            if (size.z != 1) {
+                                direction[1] = Mathf.Abs(cell.z - leftMouseDownCell[1]) / (cell.z - leftMouseDownCell[1]);
+                            }
+                        }
+                        int landmassGold = World.GetLandmassOwner(World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx).Gold;
+                        int cost = 0;
+                        List<Cell> validCells = new List<Cell>();
+                        Dictionary<int, Dictionary<int, int>> elevationCells = new Dictionary<int, Dictionary<int, int>>();
+                        neighbourIdxs.Clear();
                         for (int x = 0; x < size.x; x++) {
                             for (int z = 0; z < size.z; z++) {
-                                if (cellValidNew) {
-                                    Cell selectionCell = World.inst.GetCellData(new Vector3(corner[0] + x, 0, corner[1] + z));
+                                if (cellValidNew && landmassGold >= cost + streamerEffectQuery.spellData.cost && (streamerEffectQuery.draggable == false || validCells.Count == 0 || streamerEffectQuery.spellData.cooldown == 0)) {
+                                    int neighbourLandmassIdx = -1;
+                                    bool thisCellValid = true;
+                                    Cell selectionCell = World.inst.GetCellData(new Vector3(corner[0] + x * direction[0], 0, corner[1] + z * direction[1]));
                                     cellInvalidReason = "";
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("fertilityNotMax")) {
                                         if (selectionCell.fertile >= 2 || selectionCell.Type != ResourceType.None) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "fertilityNotMax";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("fertilityNotMin")) {
                                         if (selectionCell.fertile <= 0 || selectionCell.Type != ResourceType.None) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "fertilityNotMin";
                                         }
                                     }
@@ -153,7 +186,7 @@ namespace Phedg1Studios {
                                             int landmassSize = 0;
                                             for (int neighbourIndex = 0; neighbourIndex < neighbours.Length + 1; neighbourIndex++) {
                                                 Cell neighbour = neighbours[neighbourIndex % neighbours.Length];
-                                                if (neighbour != null && neighbour.landMassIdx != -1) {
+                                                if (neighbour != null && neighbour.landMassIdx != -1 && (!elevationCells.ContainsKey(neighbour.x) || !elevationCells[neighbour.x].ContainsKey(neighbour.z))) {
                                                     if (neighbourIndex == 8) {
                                                         if (landmassSize >= 2 && uniqueLandmasses.Count >= 2) {
                                                             uniqueLandmasses.RemoveAt(uniqueLandmasses.Count - 1);
@@ -206,23 +239,25 @@ namespace Phedg1Studios {
                                                         foreach (Cell landmassCellNeighbour in landmassCellNeighbours) {
                                                             if (landmassCellNeighbour != null) {
                                                                 if (landmassCellNeighbour.landMassIdx != -1) {
-                                                                    if (selectionCell.x != landmassCellNeighbour.x || selectionCell.z != landmassCellNeighbour.z) {
-                                                                        if (!newLandmassCells.ContainsKey(landmassCellNeighbour.x) || !newLandmassCells[landmassCellNeighbour.x].Contains(landmassCellNeighbour.z)) {
-                                                                            if (!cellsToCheckCoordinates.ContainsKey(landmassCellNeighbour.x) || !cellsToCheckCoordinates[landmassCellNeighbour.x].Contains(landmassCellNeighbour.z)) {
-                                                                                if (!cellsToCheckCoordinates.ContainsKey(landmassCellNeighbour.x)) {
-                                                                                    cellsToCheckCoordinates.Add(landmassCellNeighbour.x, new List<int>());
-                                                                                }
-                                                                                cellsToCheckCoordinates[landmassCellNeighbour.x].Add(landmassCellNeighbour.z);
-                                                                                cellsToCheck.Add(landmassCellNeighbour);
+                                                                    if (!elevationCells.ContainsKey(landmassCellNeighbour.x) || !elevationCells[landmassCellNeighbour.x].ContainsKey(landmassCellNeighbour.z)) {
+                                                                        if (selectionCell.x != landmassCellNeighbour.x || selectionCell.z != landmassCellNeighbour.z) {
+                                                                            if (!newLandmassCells.ContainsKey(landmassCellNeighbour.x) || !newLandmassCells[landmassCellNeighbour.x].Contains(landmassCellNeighbour.z)) {
+                                                                                if (!cellsToCheckCoordinates.ContainsKey(landmassCellNeighbour.x) || !cellsToCheckCoordinates[landmassCellNeighbour.x].Contains(landmassCellNeighbour.z)) {
+                                                                                    if (!cellsToCheckCoordinates.ContainsKey(landmassCellNeighbour.x)) {
+                                                                                        cellsToCheckCoordinates.Add(landmassCellNeighbour.x, new List<int>());
+                                                                                    }
+                                                                                    cellsToCheckCoordinates[landmassCellNeighbour.x].Add(landmassCellNeighbour.z);
+                                                                                    cellsToCheck.Add(landmassCellNeighbour);
 
-                                                                                if (uniqueLandmassesCoordinates.ContainsKey(landmassCellNeighbour.x) && uniqueLandmassesCoordinates[landmassCellNeighbour.x].Contains(landmassCellNeighbour.z)) {
-                                                                                    uniqueLandmassesCoordinates[landmassCellNeighbour.x].Remove(landmassCellNeighbour.z);
-                                                                                    if (uniqueLandmassesCoordinates[landmassCellNeighbour.x].Count == 0) {
-                                                                                        uniqueLandmassesCoordinates.Remove(landmassCellNeighbour.x);
-                                                                                        if (uniqueLandmassesCoordinates.Keys.Count == 0) {
-                                                                                            unreachableCells = false;
-                                                                                            cellsRemaining = false;
-                                                                                            break;
+                                                                                    if (uniqueLandmassesCoordinates.ContainsKey(landmassCellNeighbour.x) && uniqueLandmassesCoordinates[landmassCellNeighbour.x].Contains(landmassCellNeighbour.z)) {
+                                                                                        uniqueLandmassesCoordinates[landmassCellNeighbour.x].Remove(landmassCellNeighbour.z);
+                                                                                        if (uniqueLandmassesCoordinates[landmassCellNeighbour.x].Count == 0) {
+                                                                                            uniqueLandmassesCoordinates.Remove(landmassCellNeighbour.x);
+                                                                                            if (uniqueLandmassesCoordinates.Keys.Count == 0) {
+                                                                                                unreachableCells = false;
+                                                                                                cellsRemaining = false;
+                                                                                                break;
+                                                                                            }
                                                                                         }
                                                                                     }
                                                                                 }
@@ -241,51 +276,72 @@ namespace Phedg1Studios {
                                                     }
                                                 }
                                                 if (unreachableCells) {
-                                                    cellValidNew = false;
+                                                    thisCellValid = false;
                                                     cellInvalidReason = "dontSplitLandmass";
                                                 }
                                             } else if (uniqueLandmasses.Count == 0) {
-                                                cellValidNew = false;
+                                                thisCellValid = false;
                                                 cellInvalidReason = "dontEliminateLandmass";
                                             } else {
-                                                neighbourLandmassIdx = uniqueLandmasses[0].landMassIdx;
+                                                if (!elevationCells.ContainsKey(selectionCell.x)) {
+                                                    elevationCells.Add(selectionCell.x, new Dictionary<int, int>());
+                                                }
+                                                elevationCells[selectionCell.x].Add(selectionCell.z, 0);
                                             }
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("dontJoinLandmass")) {
-                                        Cell[] neighbours = new Cell[4];
-                                        World.inst.GetNeighborCells(selectionCell, ref neighbours);
-                                        List<int> uniqueLandmasses = new List<int>();
-                                        foreach (Cell neighbour in neighbours) {
-                                            if (neighbour != null) {
-                                                if (neighbour.landMassIdx != -1 && !uniqueLandmasses.Contains(neighbour.landMassIdx)) {
-                                                    uniqueLandmasses.Add(neighbour.landMassIdx);
+                                        if (selectionCell.landMassIdx == -1) {
+                                            Cell[] neighbours = new Cell[4];
+                                            World.inst.GetNeighborCells(selectionCell, ref neighbours);
+                                            List<int> uniqueLandmasses = new List<int>();
+                                            foreach (Cell neighbour in neighbours) {
+                                                if (neighbour != null) {
+                                                    int neighbourLandmass = neighbour.landMassIdx;
+                                                    if (elevationCells.ContainsKey(neighbour.x) && elevationCells[neighbour.x].ContainsKey(neighbour.z)) {
+                                                        neighbourLandmass = elevationCells[neighbour.x][neighbour.z];
+                                                    }
+                                                    if (neighbourLandmass != -1 && !uniqueLandmasses.Contains(neighbourLandmass)) {
+                                                        uniqueLandmasses.Add(neighbourLandmass);
+                                                    }
                                                 }
                                             }
-                                        }
-                                        if (uniqueLandmasses.Count == 0) {
-                                            cellValidNew = false;
-                                            cellInvalidReason = "existingLandmass";
-                                        } else if (uniqueLandmasses.Count >= 2) {
-                                            cellValidNew = false;
-                                            cellInvalidReason = "dontJoinLandmass";
+                                            if (uniqueLandmasses.Count == 0) {
+                                                thisCellValid = false;
+                                                cellInvalidReason = "existingLandmass";
+                                            } else if (uniqueLandmasses.Count >= 2) {
+                                                thisCellValid = false;
+                                                cellInvalidReason = "dontJoinLandmass";
+                                            } else {
+                                                if (!elevationCells.ContainsKey(selectionCell.x)) {
+                                                    elevationCells.Add(selectionCell.x, new Dictionary<int, int>());
+                                                }
+                                                elevationCells[selectionCell.x].Add(selectionCell.z, uniqueLandmasses[0]);
+                                                neighbourLandmassIdx = uniqueLandmasses[0];
+                                            }
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("elevationNotMax")) {
                                         if (selectionCell.Type != ResourceType.Water) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "elevationNotMax";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("elevationNotMin")) {
                                         if (selectionCell.Type == ResourceType.Water && selectionCell.deepWater) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "elevationNotMin";
+                                        }
+                                    }
+                                    if (streamerEffectQuery.criterias[criteriaIndex].Contains("playerLandmass")) {
+                                        if (!Player.inst.LandMassIsAPlayerLandMass(selectionCell.landMassIdx) || !Player.inst.AnyBuildingsOnLandMass(selectionCell.landMassIdx)) {
+                                            thisCellValid = false;
+                                            cellInvalidReason = "playerLandmass";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("noResourseLand")) {
                                         if (!(new List<ResourceType>() { ResourceType.None }.Contains(selectionCell.Type))) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             if (selectionCell.Type == ResourceType.Water) {
                                                 cellInvalidReason = "noWater";
                                             } else {
@@ -295,19 +351,19 @@ namespace Phedg1Studios {
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("noResource")) {
                                         if (!(new List<ResourceType>() { ResourceType.None, ResourceType.Water }.Contains(selectionCell.Type))) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "noResource";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("noStructure")) {
                                         if (selectionCell.OccupyingStructure.Count != 0 ||
                                             selectionCell.SubStructure.Count != 0) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "noStructure";
                                         } else {
                                             foreach (int treeId in selectionCell.TreeIds) {
                                                 if (treeId != -1) {
-                                                    cellValidNew = false;
+                                                    thisCellValid = false;
                                                     cellInvalidReason = "noResource";
                                                     break;
                                                 }
@@ -316,64 +372,89 @@ namespace Phedg1Studios {
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("witch")) {
                                         if (selectionCell.Type != ResourceType.WitchHut) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "witch";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("stone")) {
                                         if (selectionCell.Type != ResourceType.Stone) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "stone";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("iron")) {
                                         if (selectionCell.Type != ResourceType.IronDeposit) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "iron";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("keep")) {
                                         if (!(selectionCell.OccupyingStructure.Count == 1 && selectionCell.OccupyingStructure[0].UniqueName == "keep")) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "keep";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("sameLandmass")) {
                                         if (selectionCell.landMassIdx != previousLandmassIdx) {
-                                            cellValidNew = false;
+                                            thisCellValid = false;
                                             cellInvalidReason = "sameLandmass";
                                         }
                                     }
                                     if (selectionCell.x < 1 || selectionCell.x > World.inst.GridWidth - 2 || selectionCell.z < 1 || selectionCell.z > World.inst.GridHeight - 2) {
-                                        cellValidNew = false;
+                                        thisCellValid = false;
                                         cellInvalidReason = "outOfBounds";
+                                    }
+
+                                    if (!thisCellValid && !streamerEffectQuery.draggable) {
+                                        cellValidNew = false;
+                                    }
+                                    if (thisCellValid) {
+                                        validCells.Add(selectionCell);
+                                        neighbourIdxs.Add(neighbourLandmassIdx);
+                                        cost += streamerEffectQuery.spellData.cost;
                                     }
                                 }
                             }
                         }
+                        resourceAmount.Set(FreeResourceType.Gold, cost);
+                        if (streamerEffectQuery.draggable) {
+                            cellValidNew = validCells.Count > 0;
+                        }
                         
                         if (cellValid) {
-                            Cell previousCellCell = World.inst.GetCellData(Mathf.RoundToInt(previousCell.x), Mathf.RoundToInt(previousCell.y));
-                            if (previousCellCell != null) {
-                                streamerEffectQuery.UpdateDisplay(previousCellCell);
+                            List<Cell> previousCellsAdjusted = new List<Cell>();
+                            foreach (Cell previousCellCell in previousCells) {
+                                bool cellPersists = false;
+                                foreach (Cell validCellCell in validCells) {
+                                    if (previousCellCell.x == validCellCell.x && previousCellCell.z == validCellCell.z) {
+                                        cellPersists = true;
+                                        break;
+                                    }
+                                }
+                                if (!cellPersists) {
+                                    previousCellsAdjusted.Add(previousCellCell);
+                                }
                             }
+                            streamerEffectQuery.UpdateDisplay(previousCellsAdjusted);
                         }
                         previousCell = newCell;
+                        previousCells = validCells;
                         if (cellValidNew && cursorObject == null) {
-                            cells.Add(cell);
+                            cells.Add(validCells);
                             streamerEffectQuery.UpdateDataAndDisplay(cells, false);
                             cells.RemoveAt(cells.Count - 1);
                         }
-  
+                        
+
                         TerrainGen.inst.UpdateTextures();
                         if (cursorObject != null) {
                             cursorObject.transform.position = GameUI.inst.GridPointerIntersection();
                         }
                         if (cellValidNew && cursorObject == null) {
-                            streamerEffectQuery.RollbackData(cell);
+                            streamerEffectQuery.RollbackData(validCells);
                         }
 
-                        if (cellValidNew && cell.OccupyingStructure.Count > 0) {
+                        if (cellValidNew && !streamerEffectQuery.draggable && cell.OccupyingStructure.Count > 0) {
                             Building building = cell.OccupyingStructure[cell.OccupyingStructure.Count - 1];
                             nullBuilding.transform.position = building.transform.position;
                             nullBuilding.size = building.size;
@@ -381,16 +462,27 @@ namespace Phedg1Studios {
                             nullBuilding.transform.GetChild(0).eulerAngles = new Vector3(0, 0, 0);
                             GameUI.inst.RotateBuilding(nullBuilding, building.transform.GetChild(0).eulerAngles.y);
                         } else {
-                            Log(nullBuilding);
-                            Log(nullBuilding.transform);
-                            nullBuilding.transform.position = new Vector3(cell.x, 0, cell.z);
-                            nullBuilding.size = streamerEffectQuery.sizes[criteriaIndex];
+                            if (streamerEffectQuery.draggable && leftMouseDownCell[0] >= 0 && leftMouseDownCell[1] >= 0) {
+                                nullBuilding.transform.position = new Vector3(corner[0], 0, corner[1]);
+                                nullBuilding.size = size;
+                            } else {
+                                nullBuilding.transform.position = new Vector3(cell.x, 0, cell.z);
+                                nullBuilding.size = streamerEffectQuery.sizes[criteriaIndex];
+                            }
+                            
                             if (cursorRotateable) {
                                 nullBuilding.transform.GetChild(0).rotation = cursorObject.transform.GetChild(0).rotation;
                                 nullBuilding.transform.GetChild(0).localPosition = cursorObject.transform.GetChild(0).localPosition;
                             } else {
                                 nullBuilding.transform.GetChild(0).eulerAngles = new Vector3(0, 0, 0);
-                                nullBuilding.transform.GetChild(0).localPosition = new Vector3(nullBuilding.size.x / 2f, 0, nullBuilding.size.z / 2f);
+                                Vector3 offset = new Vector3(0, 0, 0);
+                                if (direction[0] == -1) {
+                                    offset = new Vector3(1, offset.y, offset.z);
+                                }
+                                if (direction[1] == -1) {
+                                    offset = new Vector3(offset.x, offset.y, 1);
+                                }
+                                nullBuilding.transform.GetChild(0).localPosition = new Vector3(nullBuilding.size.x / 2f * direction[0] + offset.x, 0, nullBuilding.size.z / 2f * direction[1] + offset.z);
                             }
                         }
 
@@ -429,14 +521,26 @@ namespace Phedg1Studios {
                 }
             }
 
-            static public void DoPrimaryClick() {               
-                //LogCellData();
-                if (cellValid) {
-                    Cell newCell = World.inst.GetCellData(GameUI.inst.GridPointerIntersection());
-                    cells.Add(newCell);
-                    previousLandmassIdx = newCell.landMassIdx;
-                    streamerEffectQuery.OnClick(newCell, criteriaIndex);
-                    QueryNext();
+            static public void DoPrimaryClick() {
+                if (clickedOnce) {
+                    //LogCellData();
+                    if (cellValid) {
+                        cells.Add(previousCells);
+                        previousCells = new List<Cell>();
+                        previousLandmassIdx = cells[cells.Count - 1][0].landMassIdx;
+                        streamerEffectQuery.OnClick(cells[cells.Count - 1], criteriaIndex);
+                        QueryNext();
+                    } else {
+                        if (streamerEffectQuery.draggable) {
+                            previousCell = new List<int>() { nullPos[0], nullPos[2] };
+                            leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
+                            nullBuilding.size = streamerEffectQuery.sizes[criteriaIndex];
+                            nullBuilding.transform.GetChild(0).localPosition = new Vector3(nullBuilding.size.x / 2f, 0, nullBuilding.size.z / 2f);
+                            EvaluateCell();
+                        }
+                    }
+                } else {
+                    clickedOnce = true;
                 }
             }
 
@@ -445,19 +549,22 @@ namespace Phedg1Studios {
                     criteriaIndex += 1;
                     ResetTracking();
                 } else {
-                    WitchHut.SpellData outSpell = null;
-                    int ladmassId = World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx;
-                    int num = streamerEffectQuery.witchHut.TryActivate((WitchHut.Spells)streamerEffectQuery.spellIndex, out outSpell);
-                    if (num == 0) {
-                        spellUsed = true;
-                        streamerEffectQuery.UpdateDataAndDisplay(cells);
-                        if (RegisterSpells.TryActivate(streamerEffectQuery.witchHut, streamerEffectQuery.spellIndex)) {
-                            criteriaIndex = 0;
-                            cells.Clear();
-                            previousLandmassIdx = -1;
-                            ResetTracking();
-                        } else {
-                            StopSpelling();
+                    if (RegisterSpells.TryActivate(streamerEffectQuery.witchHut, streamerEffectQuery.spellIndex, previousCells.Count)) {
+                        WitchHut.SpellData outSpell = null;
+                        int ladmassId = World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx;
+                        int num = streamerEffectQuery.witchHut.TryActivate((WitchHut.Spells)streamerEffectQuery.spellIndex, out outSpell);
+                        if (num == 0) {
+                            World.GetLandmassOwner(World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx).Gold -= (cells[cells.Count - 1].Count - 1) * streamerEffectQuery.spellData.cost;
+                            spellUsed = true;
+                            streamerEffectQuery.UpdateDataAndDisplay(cells);
+                            if (RegisterSpells.TryActivate(streamerEffectQuery.witchHut, streamerEffectQuery.spellIndex)) {
+                                criteriaIndex = 0;
+                                cells.Clear();
+                                previousLandmassIdx = -1;
+                                ResetTracking();
+                            } else {
+                                StopSpelling();
+                            }
                         }
                     }
                 }
@@ -465,7 +572,8 @@ namespace Phedg1Studios {
 
             static public void ResetTracking() {
                 SetCursorPrefab();
-                previousCell = new Vector2(nullPos[0], nullPos[2]);
+                previousCell = new List<int>() { nullPos[0], nullPos[2] };
+                leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
                 nullBuilding.size = streamerEffectQuery.sizes[criteriaIndex];
                 EvaluateCell();
                 SfxSystem.PlayUiSelect();
@@ -474,7 +582,8 @@ namespace Phedg1Studios {
             static public void StopSpelling(bool forceQuit = false) {
                 if (criteriaIndex != -1) {
                     criteriaIndex = -1;
-                    previousCell = new Vector2(-1000, -1000);
+                    leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
+
                     if (!forceQuit) {
                         if (spellUsed) {
                             streamerEffectQuery.ShowBanner();
@@ -484,16 +593,21 @@ namespace Phedg1Studios {
                         SpeedControlUI.inst.SetSpeed(TerraformWitchSpells.speedBackup);
                         TerrainGen.inst.UpdateTextures();
                         World.inst.CombineStone();
-                        foreach (Cell cell in cells) {
-                            for (int childIndex = 0; childIndex < World.inst.caveContainer.transform.childCount; childIndex++) {
-                                Vector3 position = World.inst.caveContainer.transform.GetChild(childIndex).position;
-                                if (Mathf.RoundToInt(position.x) == cell.x && Mathf.RoundToInt(position.z) == cell.z) {
-                                    World.inst.caveContainer.transform.GetChild(childIndex).gameObject.SetActive(true);
+                        foreach (List<Cell> cellList in cells) {
+                            foreach (Cell cell in cellList) {
+                                for (int childIndex = 0; childIndex < World.inst.caveContainer.transform.childCount; childIndex++) {
+                                    Vector3 position = World.inst.caveContainer.transform.GetChild(childIndex).position;
+                                    if (Mathf.RoundToInt(position.x) == cell.x && Mathf.RoundToInt(position.z) == cell.z) {
+                                        World.inst.caveContainer.transform.GetChild(childIndex).gameObject.SetActive(true);
+                                    }
+                                }
+                                if (cell.OccupyingStructure.Count > 0) {
+                                    cell.OccupyingStructure[cell.OccupyingStructure.Count - 1].transform.GetChild(0).gameObject.SetActive(true);
                                 }
                             }
-                            if (cell.OccupyingStructure.Count > 0) {
-                                cell.OccupyingStructure[cell.OccupyingStructure.Count - 1].transform.GetChild(0).gameObject.SetActive(true);
-                            }
+                        }
+                        if (cells.Count > 0) {
+                            streamerEffectQuery.UpdateDisplay(cells[cells.Count - 1]);
                         }
                     }
                     spellUsed = false;
@@ -522,7 +636,7 @@ namespace Phedg1Studios {
                 }
                 if (!setAsNull) {
                     if (cells.Count > 0) {
-                        Cell latestCell = cells[cells.Count - 1];
+                        Cell latestCell = cells[cells.Count - 1][0];
                         if (latestCell.OccupyingStructure.Count > 0 || latestCell.Models != null || latestCell.Type == ResourceType.WitchHut) {
                             cursorObject = new GameObject();
                             cursorObject.transform.parent = Player.inst.buildingContainer.transform;
@@ -617,23 +731,22 @@ namespace Phedg1Studios {
             [HarmonyPatch("Update")]
             public static class BuildInfoUIUpdate {
                 static void Postfix(BuildInfoUI __instance) {
-                    bool showTooltip = false;
+                    bool selectionInvalid = false;
                     if (criteriaIndex != -1) {
                         if (cellValid == false) {
                             if (cellInvalidReason != "") {
-                                showTooltip = true;
+                                selectionInvalid = true;
                             }
                         }
                     }
-                    if (showTooltip) {
+                    
+                    if (criteriaIndex != -1) {
+                        bool showCost = streamerEffectQuery.draggable && previousCells.Count > 1 && streamerEffectQuery.spellData.cost > 0;
                         __instance.buildDescParent.gameObject.SetActive(cursorRotateable);
-                        __instance.buildRuleParent.gameObject.SetActive(true);
-                        __instance.buildCostParent.gameObject.SetActive(false);
+                        __instance.buildRuleParent.gameObject.SetActive(selectionInvalid);
+                        __instance.buildCostParent.gameObject.SetActive(showCost);
+                        __instance.costTextUI.SetText(resourceAmount.ToString(" "));
                         __instance.ruleTextUI.text = Translation.GetTranslation(cellInvalidReason);
-                    } else if (criteriaIndex != -1) {
-                        __instance.buildDescParent.gameObject.SetActive(false);
-                        __instance.buildRuleParent.gameObject.SetActive(false);
-                        __instance.buildCostParent.gameObject.SetActive(false);
                     }
                 }
             }
@@ -756,6 +869,12 @@ namespace Phedg1Studios {
                         }
                     }
                     return true;
+                }
+            }
+
+            public static class KeyboardControlUpdatePlaymodeKeys {
+                static bool Prefix() {
+                    return DontRunIfSpelling();
                 }
             }
 

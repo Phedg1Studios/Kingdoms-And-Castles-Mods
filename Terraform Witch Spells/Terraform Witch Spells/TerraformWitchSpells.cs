@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using Assets;
+using Assets.Code;
 using static Phedg1Studios.TerraformWitchSpells.Util;
 using Phedg1Studios.Shared;
 using Zat.Shared.ModMenu.API;
@@ -42,6 +43,12 @@ namespace Phedg1Studios {
                 var harmony = HarmonyInstance.Create("harmony");
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
                 SetSpells();
+
+                Assembly assembly = Assembly.GetAssembly(typeof(Water));
+                System.Type type = assembly.GetType("Assets.Code.KeyboardControl");
+                MethodInfo methodInfoA = type.GetMethod("UpdatePlaymodeKeys", BindingFlags.NonPublic | BindingFlags.Instance);
+                MethodInfo methodInfoB = typeof(QueryForCriteria.KeyboardControlUpdatePlaymodeKeys).GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static);
+                harmony.Patch(methodInfoA.GetBaseDefinition(), new HarmonyMethod(methodInfoB), null, null);
             }
 
             // Initialize variables

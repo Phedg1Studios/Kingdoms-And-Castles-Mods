@@ -18,6 +18,7 @@ namespace Phedg1Studios {
                 new Vector3(1, 1, 1),
                 new Vector3(1, 1, 1),
             };
+            public override bool draggable => false;
 
             public new static string GetTermSegment() {
                 return "RelocateStone";
@@ -28,32 +29,32 @@ namespace Phedg1Studios {
                 QueryForCriteria.SetCriterias(this);
             }
 
-            public override void OnClick(Cell cell, int criteriaIndex) {
+            public override void OnClick(List<Cell> cells, int criteriaIndex) {
                 if (criterias[criteriaIndex].Contains("stone")) {
-                    ResourceType typeOld = cell.Type;
-                    cell.Type = ResourceType.None;
+                    ResourceType typeOld = cells[0].Type;
+                    cells[0].Type = ResourceType.None;
                     World.inst.CombineStone();
-                    cell.Type = typeOld;
+                    cells[0].Type = typeOld;
                 }
             }
 
-            public override void UpdateDataAndDisplay(List<Cell> cells, bool isClick) {
+            public override void UpdateDataAndDisplay(List<List<Cell>> cells, bool isClick) {
                 if (cells.Count == 2) {
-                    World.inst.RemoveStone(cells[0], false);
-                    cells[0].StorePostGenerationType();
+                    World.inst.RemoveStone(cells[0][0], false);
+                    cells[0][0].StorePostGenerationType();
 
-                    cells[1].Type = ResourceType.Stone;
-                    QueryForCriteria.SetCellModel(cells[1]);
-                    cells[1].StorePostGenerationType();
+                    cells[1][0].Type = ResourceType.Stone;
+                    QueryForCriteria.SetCellModel(cells[1][0]);
+                    cells[1][0].StorePostGenerationType();
 
                     World.inst.CombineStone();
                 }
             }
 
-            public override void RollbackData(Cell cell) {
+            public override void RollbackData(List<Cell> cells) {
             }
 
-            public override void UpdateDisplay(Cell cell) {
+            public override void UpdateDisplay(List<Cell> cells) {
             }
 
             public override void OnStart() {

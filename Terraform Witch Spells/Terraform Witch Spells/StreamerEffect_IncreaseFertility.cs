@@ -15,6 +15,7 @@ namespace Phedg1Studios {
             public override List<Vector3> sizes => new List<Vector3>() {
                 new Vector3(1, 1, 1),
             };
+            public override bool draggable => true;
 
             public new static string GetTermSegment() {
                 return "IncreaseFertility";
@@ -25,18 +26,22 @@ namespace Phedg1Studios {
                 QueryForCriteria.SetCriterias(this);
             }
 
-            public override void OnClick(Cell cell, int criteriaIndex) {
+            public override void OnClick(List<Cell> cells, int criteriaIndex) {
             }
 
-            public override void UpdateDataAndDisplay(List<Cell> cells, bool isClick) {
-                TerrainGen.inst.SetFertileTile(cells[0].x, cells[0].z, cells[0].fertile + 1);
+            public override void UpdateDataAndDisplay(List<List<Cell>> cells, bool isClick) {
+                foreach (Cell cell in cells[0]) {
+                    TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile + 1);
+                }
             }
 
-            public override void RollbackData(Cell cell) {
-                TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile - 1);
+            public override void RollbackData(List<Cell> cells) {
+                foreach (Cell cell in cells) {
+                    TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile - 1);
+                }
             }
 
-            public override void UpdateDisplay(Cell cell) {
+            public override void UpdateDisplay(List<Cell> cells) {
             }
 
             public override void OnStart() {

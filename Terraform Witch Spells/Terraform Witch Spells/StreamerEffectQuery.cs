@@ -8,14 +8,15 @@ namespace Phedg1Studios {
         public abstract class StreamerEffectQuery :  StreamerEffectCustom {
             public abstract List<List<string>> criterias { get; }
             public abstract List<Vector3> sizes { get; }
+            public abstract bool draggable { get; }
 
-            public abstract void OnClick(Cell cell, int criteriaIndex);
+            public abstract void OnClick(List<Cell> cells, int criteriaIndex);
 
-            public abstract void UpdateDataAndDisplay(List<Cell> cells, bool isClick = true);
+            public abstract void UpdateDataAndDisplay(List<List<Cell>> cells, bool isClick = true);
 
-            public abstract void RollbackData(Cell cell);
+            public abstract void RollbackData(List<Cell> cells);
 
-            public abstract void UpdateDisplay(Cell cell);
+            public abstract void UpdateDisplay(List<Cell> cells);
 
             public void SetupInterfaces() {
                 TerraformWitchSpells.BackupSpeed();

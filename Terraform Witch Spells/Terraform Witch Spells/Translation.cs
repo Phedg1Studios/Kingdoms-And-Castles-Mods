@@ -84,6 +84,9 @@ namespace Phedg1Studios {
                 { "sameLandmass", new Dictionary<string, string>() {
                     { "en", "Must remain on the same landmass, sire." },
                 } },
+                { "playerLandmass", new Dictionary<string, string>() {
+                    { "en", "Build an Outpost here to claim this island!" },
+                } },
                 { "outOfBounds", new Dictionary<string, string>() {
                     { "en", "That is beyond your influence, sire." },
                 } },

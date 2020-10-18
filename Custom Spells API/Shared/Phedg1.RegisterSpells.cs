@@ -75,10 +75,10 @@ namespace Phedg1Studios {
             }
 
             // Check if spell can be activated without activating it
-            static public bool TryActivate(WitchHut witchHut, int spellIndex) {
+            static public bool TryActivate(WitchHut witchHut, int spellIndex, int activations = 1) {
                 int landMassIdx1 = World.inst.GetCellData(witchHut.transform.position).landMassIdx;
-                if (World.GetLandmassOwner(landMassIdx1).Gold < witchHut.GetSpellCost(spellIndex)) {
-                } else if (witchHut.GetSpellCooldown(spellIndex) > 0) {
+                if (World.GetLandmassOwner(landMassIdx1).Gold < witchHut.GetSpellCost(spellIndex) * activations) {
+                } else if (witchHut.GetSpellCooldown(spellIndex) > 0 || (witchHut.GetSpellCooldown(spellIndex) != 0 && activations > 1)) {
                 } else {
                     return true;
                 }

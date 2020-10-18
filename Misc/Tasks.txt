@@ -17,6 +17,9 @@ DONE	Fix worker, build and main menu buttons still being interactable while spel
 DONE	Refactor custom spells functionality into separate mod.
 DONE	Integrate spell configuration with ModMenu.
 DONE	Create icons.
+DONE	Allow drag selection.
+DONE	Allow placement of keep on other landmasses.
+DONE	Show multiple spell costs popup.
 
 
 

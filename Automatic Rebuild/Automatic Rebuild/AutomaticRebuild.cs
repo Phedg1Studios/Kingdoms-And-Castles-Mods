@@ -15,9 +15,7 @@ namespace Phedg1Studios {
             private UnityAction<Exception> modMenuException;
             private InteractiveConfiguration<ModMenuSettings> config;
             static private bool doAutomaticRebuild = true;
-            //static private Dictionary<int, List<int>> rubbleCells = new Dictionary<int, List<int>>();
             static private Dictionary<int, Dictionary<int, float>> siegeMonsterRubble = new Dictionary<int, Dictionary<int, float>>();
-            //static private bool raidInProgress = false;
             static private float siegeMonsterRebuildDelay = 10;
 
             void Preload(KCModHelper helper) {
@@ -30,11 +28,9 @@ namespace Phedg1Studios {
             [HarmonyPatch("Unpack")]
             public static class WorldSaveDataUnpack {
                 static void Postfix() {
-                    //raidInProgress = false;
                     siegeMonsterRubble.Clear();
                 }
             }
-
 
             void Update() {
                 if (siegeMonsterRubble.Keys.Count > 0) {
@@ -57,42 +53,7 @@ namespace Phedg1Studios {
                         }
                     }
                 }
-                /*
-                if (raidInProgress != RaiderSystem.inst.IsRaidInProgress()) {
-                    raidInProgress = !raidInProgress;
-                    if (raidInProgress) {
-                        rubbleCells.Clear();
-                        siegeMonsterRubble.Clear();
-                    } else {
-                        if (doAutomaticRebuild) {
-                            foreach (int x in rubbleCells.Keys) {
-                                foreach (int z in rubbleCells[x]) {
-                                    Cell cell = World.inst.GetCellData(x, z);
-                                    if (cell != null) {
-                                        for (int buildingIndex = 0; buildingIndex < cell.OccupyingStructure.Count; buildingIndex++) {
-                                            World.inst.AttemptRebuild(cell.OccupyingStructure[buildingIndex]);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                */
             }
-
-            /*
-            void Update() {
-                if (Input.GetKeyDown(KeyCode.F2)) {
-                    Cell cell = World.inst.GetCellData(GameUI.inst.GridPointerIntersection());
-                    if (cell != null) {
-                        for (int buildingIndex = 0; buildingIndex < cell.OccupyingStructure.Count; buildingIndex++) {
-                            World.inst.WreckBuilding(cell.OccupyingStructure[buildingIndex]);
-                        }
-                    }
-                }
-            }
-            */
 
             static public void RebuildAll() {
                 for (int x = 0; x < World.inst.GridWidth; x++) {
@@ -133,14 +94,6 @@ namespace Phedg1Studios {
                         if (!siegeMonsterRubble[cell.x].ContainsKey(cell.z)) {
                             siegeMonsterRubble[cell.x].Add(cell.z, Time.time);
                         }
-                        /*
-                        if (!rubbleCells.ContainsKey(cell.x)) {
-                            rubbleCells.Add(cell.x, new List<int>());
-                        }
-                        if (!rubbleCells[cell.x].Contains(cell.z)) {
-                            rubbleCells[cell.x].Add(cell.z);
-                        }
-                        */
                     }
                 }
             }

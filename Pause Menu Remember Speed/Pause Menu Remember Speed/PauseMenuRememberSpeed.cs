@@ -8,16 +8,22 @@ namespace Phedg1Studios {
     namespace PauseMenuRememberSpeed {
         public class PauseMenuRememberSpeed : MonoBehaviour {
             static public KCModHelper helper;
-            static private List<int> speeds = new List<int>() { 1, 1, 1, 1, 1 };
-            static private int resetSpeed = 0;
+            static private List<int> speeds = new List<int>() { 1, 1, 1, 1, 1, 1 };
+            static private int mostRecent = 1;
+            static private int nextMostRecent = 1;
+            static private System.Type timeManagerType;
+            static private FieldInfo timeManagerInst;
+            static private FieldInfo timeManagerLastSpeed;
 
             void Preload(KCModHelper helper) {
                 PauseMenuRememberSpeed.helper = helper;
                 var harmony = HarmonyInstance.Create("harmony");
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
                 Assembly assembly = Assembly.GetAssembly(typeof(FreeResource));
-                System.Type type = assembly.GetType("Assets.TimeManager");
-                MethodInfo methodInfoA = type.GetMethod("TrySetSpeed", BindingFlags.NonPublic | BindingFlags.Instance);
+                timeManagerType = assembly.GetType("Assets.TimeManager");
+                timeManagerInst = timeManagerType.GetField("inst", BindingFlags.Public | BindingFlags.Static);
+                timeManagerLastSpeed = timeManagerType.GetField("lastSpeedInUse", BindingFlags.Public | BindingFlags.Instance);
+                MethodInfo methodInfoA = timeManagerType.GetMethod("TrySetSpeed", BindingFlags.NonPublic | BindingFlags.Instance);
                 MethodInfo methodInfoB = typeof(TimeManagerTrySetSpeed).GetMethod("Postfix", BindingFlags.NonPublic | BindingFlags.Static);
                 harmony.Patch(methodInfoA.GetBaseDefinition(), null, new HarmonyMethod(methodInfoB), null);
             }
@@ -50,8 +56,9 @@ namespace Phedg1Studios {
             [HarmonyPatch("Shutdown")]
             public static class MainMenuModeShutdown {
                 static void Postfix() {
-                    resetSpeed = speeds[0];
-                    SpeedControlUI.inst.SetSpeed(resetSpeed);
+                    nextMostRecent = speeds[0];
+                    mostRecent = speeds[1];
+                    ResumeSpeeds();
                 }
             }
 
@@ -59,7 +66,16 @@ namespace Phedg1Studios {
             [HarmonyPatch("OnClickedReturnToGame")]
             public static class MainMenuModeOnClickedReturnToGame {
                 static void Postfix() {
-                    SpeedControlUI.inst.SetSpeed(resetSpeed);
+                    ResumeSpeeds();
+                }
+            }
+
+            static public void ResumeSpeeds() {
+                SpeedControlUI.inst.SetSpeed(mostRecent);
+                UpdateSpeed(nextMostRecent);
+                UpdateSpeed(mostRecent);
+                if (mostRecent == 0) {
+                    timeManagerLastSpeed.SetValue(timeManagerInst.GetValue(null), nextMostRecent);
                 }
             }
         }

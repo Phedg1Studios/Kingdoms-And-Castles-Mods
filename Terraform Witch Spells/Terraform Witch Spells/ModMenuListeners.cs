@@ -210,7 +210,7 @@ namespace Phedg1Studios {
                         if (spellDataCustom.spellImpl == typeof(StreamerEffect_IncreaseFertility)) {
                             int value = Mathf.RoundToInt(setting.slider.value);
                             spellDataCustom.relationship = (WitchHut.Relationship)value;
-                            settings.relationships.DecreaseFertility.Label = value.ToString();
+                            settings.relationships.IncreaseFertility.Label = value.ToString();
                             break;
                         }
                     }

@@ -17,6 +17,7 @@ namespace Phedg1Studios {
             public override List<Vector3> sizes => new List<Vector3>() {
                 new Vector3(1, 1, 1),
             };
+            public override bool draggable => true;
             System.Reflection.MethodInfo methodInfo;
 
             public new static string GetTermSegment() {
@@ -25,52 +26,58 @@ namespace Phedg1Studios {
 
             public override void Activate() {
                 SetupInterfaces();
-                QueryForCriteria.SetCriterias(this);
                 methodInfo = typeof(MapEdit).GetMethod("SetWaterTileColor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                QueryForCriteria.SetCriterias(this);
             }
 
-            public override void OnClick(Cell cell, int criteriaIndex) {
+            public override void OnClick(List<Cell> cells, int criteriaIndex) {
             }
 
-            public override void UpdateDataAndDisplay(List<Cell> cells, bool isClick) {
-                int fertileOld = cells[0].fertile;
-                bool deepwater = false;
-                if (cells[0].Type == ResourceType.Water) {
-                    deepwater = true;
-                }
-                TerrainGen.inst.SetWaterTile(cells[0].x, cells[0].z);
-                cells[0].fertile = fertileOld;
-                cells[0].deepWater = deepwater;
-                if (deepwater) {
-                    TerrainGen.inst.SetTileHeight(cells[0], TerrainGen.waterHeightDeep);
-                } else {
-                    TerrainGen.inst.SetTileHeight(cells[0], TerrainGen.waterHeightShallow - SRand.value * 0.1f);
-                }
-                UpdateTileColour(cells[0]);
-
-                if (isClick) {
-                    if (deepwater) {
-                        cells[0].landMassIdx = -1;
+            public override void UpdateDataAndDisplay(List<List<Cell>> cells, bool isClick) {
+                foreach (Cell cell in cells[0]) {
+                    int fertileOld = cell.fertile;
+                    bool deepwater = false;
+                    if (cell.Type == ResourceType.Water) {
+                        deepwater = true;
                     }
-                    cells[0].StorePostGenerationType();
-                }
-            }
-
-            public override void RollbackData(Cell cell) {
-                if (cell.deepWater) {
-                    cell.deepWater = false;
-                } else {
-                    cell.Type = ResourceType.None;
-                }
-            }
-
-            public override void UpdateDisplay(Cell cell) {
-                if (cell.Type == ResourceType.Water) {
-                    TerrainGen.inst.SetTileHeight(cell, TerrainGen.waterHeightShallow - SRand.value * 0.1f);
+                    TerrainGen.inst.SetWaterTile(cell.x, cell.z);
+                    cell.fertile = fertileOld;
+                    cell.deepWater = deepwater;
+                    if (deepwater) {
+                        TerrainGen.inst.SetTileHeight(cell, TerrainGen.waterHeightDeep);
+                    } else {
+                        TerrainGen.inst.SetTileHeight(cell, TerrainGen.waterHeightShallow - SRand.value * 0.1f);
+                    }
                     UpdateTileColour(cell);
-                } else {
-                    TerrainGen.inst.SetLandTile(cell.x, cell.z);
-                    TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile);
+
+                    if (isClick) {
+                        if (deepwater) {
+                            cell.landMassIdx = -1;
+                        }
+                        cell.StorePostGenerationType();
+                    }
+                }
+            }
+
+            public override void RollbackData(List<Cell> cells) {
+                foreach (Cell cell in cells) {
+                    if (cell.deepWater) {
+                        cell.deepWater = false;
+                    } else {
+                        cell.Type = ResourceType.None;
+                    }
+                }
+            }
+
+            public override void UpdateDisplay(List<Cell> cells) {
+                foreach (Cell cell in cells) {
+                    if (cell.Type == ResourceType.Water) {
+                        TerrainGen.inst.SetTileHeight(cell, TerrainGen.waterHeightShallow - SRand.value * 0.1f);
+                        UpdateTileColour(cell);
+                    } else {
+                        TerrainGen.inst.SetLandTile(cell.x, cell.z);
+                        TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile);
+                    }
                 }
             }
 

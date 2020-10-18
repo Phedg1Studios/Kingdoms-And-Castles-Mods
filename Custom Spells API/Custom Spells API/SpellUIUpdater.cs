@@ -21,8 +21,6 @@ namespace Phedg1Studios {
             static public ScrollRect scrollrect;
 
             static public void UpdateUI(GameObject spellList) {
-                CustomSpellsAPI.helper.Log(StackTraceUtility.ExtractStackTrace());
-
                 RectTransform spellListParentTransform = spellList.transform.parent.GetComponent<RectTransform>();
                 RectTransform spellListTransform = spellList.GetComponent<RectTransform>();
 
