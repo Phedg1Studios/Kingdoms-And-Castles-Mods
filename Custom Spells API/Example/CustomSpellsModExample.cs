@@ -10,7 +10,7 @@ namespace Example {
     namespace CustomSpellsAPIExample {
         public class CustomSpellsModExample : MonoBehaviour {
             static public KCModHelper helper;
-            // Initialize systems
+
             void Preload(KCModHelper helper) {
                 CustomSpellsModExample.helper = helper;
                 var harmony = HarmonyInstance.Create("harmony");

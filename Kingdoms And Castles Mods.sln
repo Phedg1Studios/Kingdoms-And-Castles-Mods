@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.1231
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QoL Witch Spells", "QoL Witch Spells.csproj", "{43BD2220-90B9-4A50-B5C0-BA1519A436C5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kingdoms And Castles Mods", "Kingdoms And Castles Mods.csproj", "{43BD2220-90B9-4A50-B5C0-BA1519A436C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +20,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {4376930E-E83B-466A-AB41-6906D7071CA7}
+		SolutionGuid = {3AD7D227-7FC2-481F-960B-C98C8E459858}
 	EndGlobalSection
 EndGlobal

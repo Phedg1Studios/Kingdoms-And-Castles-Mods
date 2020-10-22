@@ -119,9 +119,12 @@
   <ItemGroup>
     <Compile Include="Automatic Rebuild\Automatic Rebuild\AutomaticRebuild.cs" />
     <Compile Include="Building Rotation Fix\Building Rotation Fix\BuildingRotationFix.cs" />
+    <Compile Include="Custom Research API\Custom Research API\CustomResearchAPI.cs" />
+    <Compile Include="Custom Research API\Custom Research API\ResearchUIUpdater.cs" />
+    <Compile Include="Custom Spells API\Custom Spells API\CustomSpellsAPI.cs" />
+    <Compile Include="Custom Spells API\Custom Spells API\SpellUIUpdater.cs" />
     <Compile Include="Custom Spells API\Example\CustomSpellsModExample.cs" />
     <Compile Include="Custom Spells API\Example\StreamerEffect_Example.cs" />
-    <Compile Include="Custom Spells API\Custom Spells API\CustomSpellsAPI.cs" />
     <Compile Include="Custom Spells API\Shared\Phedg1.RegisterSpells.cs" />
     <Compile Include="Custom Spells API\Shared\Phedg1.SpellDataCustom.cs" />
     <Compile Include="Custom Spells API\Shared\Phedg1.StreamerEffectCustom.cs" />
@@ -129,7 +132,7 @@
     <Compile Include="Pause Menu Remember Speed\Pause Menu Remember Speed\PauseMenuRememberSpeed.cs" />
     <Compile Include="Placing Building Cancel Fix\Placing Building Cancel Fix\PlacingBuildingCancelFix.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Custom Spells API\Custom Spells API\SpellUIUpdater.cs" />
+    <Compile Include="Rotate Buildings\Rotate Buildings\RotateBuildings.cs" />
     <Compile Include="Terraform Witch Spells\Shared\Zat.Debugging.cs" />
     <Compile Include="Terraform Witch Spells\Shared\Zat.InterModComm.cs" />
     <Compile Include="Terraform Witch Spells\Shared\Zat.ModMenu.API.cs" />
@@ -148,7 +151,11 @@
     <Compile Include="Terraform Witch Spells\Terraform Witch Spells\TerraformWitchSpells.cs" />
     <Compile Include="Terraform Witch Spells\Terraform Witch Spells\Translation.cs" />
     <Compile Include="Terraform Witch Spells\Terraform Witch Spells\Util.cs" />
+    <Compile Include="Force Nearby Destinations\Force Nearby Destinations\ForceNearbyDestinations.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Custom Research API\Example\" />
+    <Folder Include="Custom Research API\Shared\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

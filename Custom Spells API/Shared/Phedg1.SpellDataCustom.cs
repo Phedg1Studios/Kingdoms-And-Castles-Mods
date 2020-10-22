@@ -1,7 +1,4 @@
 ﻿using UnityEngine;
-using Assets;
-using System.Collections.Generic;
-using I2.Loc;
 
 namespace Phedg1Studios {
     namespace Shared {

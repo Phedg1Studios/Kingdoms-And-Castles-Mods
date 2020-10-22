@@ -1,7 +1,5 @@
 ﻿using UnityEngine;
 using Assets;
-using System.Collections.Generic;
-using Phedg1Studios.Shared;
 using I2.Loc;
 
 namespace Phedg1Studios {

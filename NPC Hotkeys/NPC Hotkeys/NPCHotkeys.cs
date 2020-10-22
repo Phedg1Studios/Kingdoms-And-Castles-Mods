@@ -14,8 +14,10 @@ namespace Phedg1Studios {
             private InteractiveConfiguration<ModMenuSettings> config;
             static private Building keep;
             static private WitchHut witchHut;
+            static private Building greatLibrary;
             static private KeyCode advisersHotkey = KeyCode.LeftBracket;
             static private KeyCode witchHotkey = KeyCode.RightBracket;
+            static private KeyCode greatLibraryHotkey = KeyCode.Backslash;
 
             void Preload(KCModHelper helper) {
                 NPCHotkeys.helper = helper;
@@ -44,6 +46,9 @@ namespace Phedg1Studios {
                 if (Input.GetKeyDown(witchHotkey)) {
                     OpenWitch();
                 }
+                if (Input.GetKeyDown(greatLibraryHotkey)) {
+                    OpenGreatLibrary();
+                }
             }
 
             static public void OpenWitch() {
@@ -60,6 +65,21 @@ namespace Phedg1Studios {
                     if (cell != null) {
                         GameUI.inst.SelectCell(cell);
                     }
+                }
+            }
+
+            static public void OpenGreatLibrary() {
+                if (greatLibrary == null) {
+                    for (int landMassIndex = 0; landMassIndex < Player.inst.PlayerLandmassOwner.ownedLandMasses.Count; landMassIndex++) {
+                        ArrayExt<Building> greatLibraries = Player.inst.GetBuildingListForLandMass(Player.inst.PlayerLandmassOwner.ownedLandMasses.data[landMassIndex], World.greatLibraryName.GetHashCode());
+                        if (greatLibraries.Count > 0) {
+                            greatLibrary = greatLibraries.data[0];
+                            break;
+                        }
+                    }
+                }
+                if (greatLibrary != null) {
+                    GameUI.inst.SelectBuilding(greatLibrary);
                 }
             }
 
@@ -84,6 +104,8 @@ namespace Phedg1Studios {
                 static void Postfix(Building building) {
                     if (building.uniqueNameHash == World.keepHash) {
                         keep = building;
+                    } else if (building.uniqueNameHash == World.greatLibraryName.GetHashCode()) {
+                        greatLibrary = building;
                     }
                 }
             }
@@ -106,6 +128,10 @@ namespace Phedg1Studios {
                 [Setting("Open Witch", "Open the witch interface")]
                 [Hotkey(KeyCode.RightBracket)]
                 public InteractiveHotkeySetting OpenWitch { get; private set; }
+
+                [Setting("Open Great Library", "Open the great library interface")]
+                [Hotkey(KeyCode.Backslash)]
+                public InteractiveHotkeySetting OpenGreatLibrary { get; private set; }
             }
 
             void SettingsRegistered(ModSettingsProxy proxy, SettingsEntry[] saved) {
@@ -116,8 +142,12 @@ namespace Phedg1Studios {
                 config.Settings.OpenWitch.OnUpdate.AddListener((setting) => {
                     witchHotkey = config.Settings.OpenWitch.Key;
                 });
+                config.Settings.OpenGreatLibrary.OnUpdate.AddListener((setting) => {
+                    greatLibraryHotkey = config.Settings.OpenGreatLibrary.Key;
+                });
                 config.Settings.OpenAdvisers.TriggerUpdate();
                 config.Settings.OpenWitch.TriggerUpdate();
+                config.Settings.OpenGreatLibrary.TriggerUpdate();
             }
 
             void ModMenuException(Exception exception) {

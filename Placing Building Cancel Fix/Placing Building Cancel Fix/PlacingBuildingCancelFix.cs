@@ -39,9 +39,11 @@ namespace Phedg1Studios {
                             if (codes[codeIndex + 1].opcode == OpCodes.Ldfld && NullSafeToString(codes[codeIndex + 1].operand) == "PlacementMode CurrPlacementMode") {
                                 if (codes[codeIndex + 2].opcode == OpCodes.Callvirt && NullSafeToString(codes[codeIndex + 2].operand) == "Boolean IsPlacing()") {
                                     startIndex = codeIndex + 3;
+                                    break;
                                 }
                             }
                         }
+                        //helper.Log(codes[codeIndex].opcode.ToString() + " " + NullSafeToString(codes[codeIndex].operand));
                     }
                     if (startIndex != -1) {
                         FieldInfo gameUI = typeof(GameUI).GetField("inst", BindingFlags.Public | BindingFlags.Static);
