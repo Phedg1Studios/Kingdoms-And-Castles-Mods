@@ -32,7 +32,7 @@ namespace Phedg1Studios {
             public override void UpdateDataAndDisplay(List<List<Cell>> cells, bool isClick) {
                 if (isClick) {
                     foreach (Cell cell in cells[0]) {
-                        World.inst.PlaceStone(cell.x, cell.z, ResourceType.UnusableStone);
+                        World.inst.PlaceStone(cell, ResourceType.UnusableStone);
                         //cell.StorePostGenerationType();
                     }
                     World.inst.CombineStone();

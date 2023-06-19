@@ -9,132 +9,70 @@ using UnityEngine.UI;
 namespace Phedg1Studios {
     namespace Shared {
         public class RegisterSpells : MonoBehaviour {
+            static public KCModHelper helper;
+            const string interopName = "Phedg1CustomSpellsAPI";
             static public List<SpellDataCustom> spellData = new List<SpellDataCustom>();
-            static public List<GameObject> additionalSpellButtons = new List<GameObject>();
-            static public int spellDataOriginalCount = 0;
-            static private bool addedToTwitchList = false;
+            static private Dictionary<int, int> customIndexSpellData = new Dictionary<int, int>();
+            static private int spellDataOriginalCount = 0;
 
+            static public System.Reflection.MethodInfo addInfo;
+            static public System.Reflection.MethodInfo tryActivateInfo;
 
-
-            // Add custom spell data
-            [HarmonyPatch(typeof(WitchHut))]
-            [HarmonyPatch("Awake")]
-            public static class WitchHutAwake {
-                static void Postfix(WitchHut __instance) {
-                    System.Reflection.FieldInfo fieldInfo = typeof(WitchHut).GetField("spellData", BindingFlags.NonPublic | BindingFlags.Instance);
-                    ICollection spellDataCollection = fieldInfo.GetValue(__instance) as ICollection;
-                    List<WitchHut.SpellData> spellDataList = new List<WitchHut.SpellData>();
-                    foreach (object spellDataObject in spellDataCollection) {
-                        spellDataList.Add((WitchHut.SpellData)spellDataObject);
-                    }
-                    spellDataOriginalCount = spellDataList.Count;
-                    foreach (SpellDataCustom currentSpellData in spellData) {
-                        spellDataList.Add(currentSpellData);
-                    }
-                    WitchHut.SpellData[] spellDataArray = new WitchHut.SpellData[spellDataList.Count];
-                    for (int spellIndex = 0; spellIndex < spellDataList.Count; spellIndex++) {
-                        spellDataArray[spellIndex] = spellDataList[spellIndex];
-                    }
-                    fieldInfo.SetValue(__instance, spellDataArray);
-                    fieldInfo = typeof(WitchHut).GetField("currSpellCooldown", BindingFlags.NonPublic | BindingFlags.Instance);
-                    fieldInfo.SetValue(__instance, new int[spellDataArray.Length]);
-                }
+            static public SpellDataCustom GetSpellCustomIndex(int givenIndex) {
+                return spellData[customIndexSpellData[givenIndex]];
             }
 
-
-            // Upgrade spell list into a scroll
-            // Add buttons to menu for custom spells
-            
-            [HarmonyPatch(typeof(WitchUI))]
-            [HarmonyPatch("Start")]
-            public static class WitchUIStart {
-                static void Postfix() {
-                    additionalSpellButtons.Clear();
-                    GameObject buttonOriginal = GameUI.inst.witchUI.spellList.transform.GetChild(0).gameObject;
-                    for (int spellIndex = 0; spellIndex < spellData.Count; spellIndex++) {
-                        GameObject buttonNew = GameObject.Instantiate(buttonOriginal, buttonOriginal.transform.parent);
-                        buttonNew.transform.localScale = buttonOriginal.transform.localScale;
-                        buttonNew.transform.localPosition = buttonOriginal.transform.localPosition;
-                        Button button = buttonNew.GetComponent<Button>();
-                        button.onClick = new Button.ButtonClickedEvent();
-                        int lambdaSpellIndex = spellIndex;
-                        button.onClick.AddListener(() => {
-                            System.Reflection.FieldInfo fieldInfo = typeof(WitchUI).GetField("witch", BindingFlags.NonPublic | BindingFlags.Instance);
-                            WitchHut witchHut = (WitchHut)fieldInfo.GetValue(GameUI.inst.witchUI);
-                            if (TryActivate(witchHut, spellDataOriginalCount + lambdaSpellIndex)) {
-                                StreamerEffectCustom currentSpell = Activator.CreateInstance(spellData[lambdaSpellIndex].spellImpl) as StreamerEffectCustom;
-                                currentSpell.witchUI = GameUI.inst.witchUI;
-                                currentSpell.witchHut = witchHut;
-                                currentSpell.spellData = spellData[lambdaSpellIndex];
-                                currentSpell.spellIndex = spellDataOriginalCount + lambdaSpellIndex;
-                                currentSpell.Activate();
-                            }
-                        });
-                        additionalSpellButtons.Add(buttonNew);
-                    }
-                }
+            static public SpellDataCustom GetSpellGlobalIndex(int givenIndex) {
+                return GetSpellCustomIndex(givenIndex - spellDataOriginalCount);
             }
 
-            // Check if spell can be activated without activating it
-            static public bool TryActivate(WitchHut witchHut, int spellIndex, int activations = 1) {
-                int landMassIdx1 = World.inst.GetCellData(witchHut.transform.position).landMassIdx;
-                if (World.GetLandmassOwner(landMassIdx1).Gold < witchHut.GetSpellCost(spellIndex) * activations) {
-                } else if (witchHut.GetSpellCooldown(spellIndex) > 0 || (witchHut.GetSpellData(spellIndex).cooldown > 0 && activations > 1)) {
-                } else {
-                    return true;
-                }
-                return false;
+            static public void Setup(KCModHelper givenHelper) {
+                helper = givenHelper;
+                Assembly assembly;
+                Porg.InteropClient.TryGetMod(interopName, out assembly);
+                Type customSpellsAPI = assembly.GetType("Phedg1Studios.CustomSpellsAPI.CustomSpellsAPI");
+                addInfo = customSpellsAPI.GetMethod("Add", BindingFlags.Public | BindingFlags.Static);
+                tryActivateInfo = customSpellsAPI.GetMethod("TryActivateWithProps", BindingFlags.Public | BindingFlags.Static);
             }
 
-            // Only make spell buttons visible when a certain friendship is reached
-            [HarmonyPatch(typeof(WitchUI))]
-            [HarmonyPatch("RefreshAvailableSpells")]
-            public static class WitchUIRefreshAvailableSpells {
-                static void Postfix(WitchUI __instance) {
-                    bool anySpellsAvailable = false;
+            static public void Add(SpellDataCustom givenSpellData) {
+                spellData.Add(givenSpellData);
+                int globalIndex = (int)addInfo.Invoke(null, new object[] { givenSpellData.GetProperties() });
+                customIndexSpellData.Add(globalIndex, spellData.Count - 1);
+            }
+
+            static private void SetOriginalCount(int givenSpellDataCount) {
+                spellDataOriginalCount = givenSpellDataCount;
+            }
+
+            static private void ButtonClicked(Button.ButtonClickedEvent onClick, WitchUI __instance, int globalSpellIndex) {
+                onClick.AddListener(() => {
                     System.Reflection.FieldInfo fieldInfo = typeof(WitchUI).GetField("witch", BindingFlags.NonPublic | BindingFlags.Instance);
-                    WitchHut witch = (WitchHut)fieldInfo.GetValue(__instance);
-                    fieldInfo = typeof(WitchHut).GetField("spellData", BindingFlags.NonPublic | BindingFlags.Instance);
-                    ICollection spellDataCollection = (ICollection)fieldInfo.GetValue(witch);
-                    int spellDataCount = 0;
-                    foreach (object spellData in spellDataCollection) {
-                        spellDataCount += 1;
+                    WitchHut witchHut = (WitchHut)fieldInfo.GetValue(__instance);
+                    if (TryActivate(witchHut, globalSpellIndex)) {
+                        StreamerEffectCustom currentSpell = Activator.CreateInstance(GetSpellGlobalIndex(globalSpellIndex).spellImpl) as StreamerEffectCustom;
+                        currentSpell.witchUI = __instance;
+                        currentSpell.witchHut = witchHut;
+                        currentSpell.spellData = GetSpellGlobalIndex(globalSpellIndex);
+                        currentSpell.spellIndex = globalSpellIndex;
+                        currentSpell.Activate();
                     }
-                    if (spellDataCount == __instance.spellList.transform.childCount) {
-                        for (int spellIndex = 0; spellIndex < spellDataCount; spellIndex++) {
-                            SpellDataCustom spellDataCustom = witch.GetSpellData(spellIndex) as SpellDataCustom;
-                            if (spellDataCustom != null) {
-                                bool spellButtonsActive = witch.relationship >= spellDataCustom.relationship;
-                                if (!spellButtonsActive) {
-                                }
-                                __instance.spellList.transform.GetChild(spellIndex).gameObject.SetActive(spellButtonsActive);
-                                if (spellButtonsActive) {
-                                    anySpellsAvailable = true;
-                                }
-                            }
-                        }
-                        if (anySpellsAvailable) {
-                            __instance.spellContainer.gameObject.SetActive(true);
-                        }
-                    }
-                }
+                });
             }
 
-            // Prevent custom spell costs from scaling
-            [HarmonyPatch(typeof(WitchHut))]
-            [HarmonyPatch("GetSpellCost")]
-            public static class WitchHutGetSpellCost {
-                static void Postfix(WitchHut __instance, int i, ref int __result) {
-                    SpellDataCustom spellDataCustom = __instance.GetSpellData(i) as SpellDataCustom;
-                    if (spellDataCustom != null) {
-                        if (spellDataCustom != null && spellDataCustom.scaleCost == false) {
-                            __result = spellDataCustom.cost;
-                        } else {
-                            __result = Mathf.RoundToInt(__result / (1 + i / 10f));
-                        }
-                    }
-                }
+            static public bool TryActivate(WitchHut witchHut, int spellIndex, int activations = 1) {
+                Dictionary<int, object> properties = new Dictionary<int, object>();
+                properties.Add((int)SpellDataCustom.TryActivate.WitchHut, witchHut);
+                properties.Add((int)SpellDataCustom.TryActivate.SpellIndex, spellIndex);
+                properties.Add((int)SpellDataCustom.TryActivate.Activations, activations);
+                object result = tryActivateInfo.Invoke(null, new object[] { properties });
+                return (bool)Convert.ChangeType(result, typeof(bool));
             }
+
+            // NEED TO EVALUATE THIS TWITCH STUFF STILL
+
+
+            static private bool addedToTwitchList = false;
 
             static public void AddToTwitchList() {
                 if (!addedToTwitchList) {

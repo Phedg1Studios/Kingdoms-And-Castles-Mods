@@ -91,6 +91,9 @@
       <HintPath>Dependencies\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>Dependencies\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.InputModule">
       <HintPath>Dependencies\UnityEngine.InputModule.dll</HintPath>
       <Private>False</Private>
@@ -127,9 +130,9 @@
     <Compile Include="Custom Spells API\Custom Spells API\SpellUIUpdater.cs" />
     <Compile Include="Custom Spells API\Example\CustomSpellsModExample.cs" />
     <Compile Include="Custom Spells API\Example\StreamerEffect_Example.cs" />
-    <Compile Include="Custom Spells API\Shared\Phedg1.RegisterSpells.cs" />
-    <Compile Include="Custom Spells API\Shared\Phedg1.SpellDataCustom.cs" />
-    <Compile Include="Custom Spells API\Shared\Phedg1.StreamerEffectCustom.cs" />
+    <Compile Include="Custom Spells API\Export\Phedg1.RegisterSpells.cs" />
+    <Compile Include="Custom Spells API\Export\Phedg1.SpellDataCustom.cs" />
+    <Compile Include="Custom Spells API\Export\Phedg1.StreamerEffectCustom.cs" />
     <Compile Include="NPC Hotkeys\NPC Hotkeys\NPCHotkeys.cs" />
     <Compile Include="Pause Menu Remember Speed\Pause Menu Remember Speed\PauseMenuRememberSpeed.cs" />
     <Compile Include="Placing Building Cancel Fix\Placing Building Cancel Fix\PlacingBuildingCancelFix.cs" />
@@ -156,7 +159,11 @@
     <Compile Include="Terraform Witch Spells\Terraform Witch Spells\Translation.cs" />
     <Compile Include="Terraform Witch Spells\Terraform Witch Spells\Util.cs" />
     <Compile Include="Force Nearby Destinations\Force Nearby Destinations\ForceNearbyDestinations.cs" />
+    <Compile Include="Util\KCModInterop.cs" />
+    <Compile Include="Util\Phedg1.Util.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Custom Spells API\Import\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

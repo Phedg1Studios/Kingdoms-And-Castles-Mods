@@ -19,8 +19,7 @@ namespace Phedg1Studios {
             };
             public override bool draggable => true;
             System.Reflection.MethodInfo setWaterTileColorInfo;
-            System.Reflection.MethodInfo bakePathingCostsForCell;
-            System.Reflection.FieldInfo unitsInfo;
+            System.Reflection.MethodInfo bakeCell;
 
             public new static string GetTermSegment() {
                 return "IncreaseElevation";
@@ -29,8 +28,7 @@ namespace Phedg1Studios {
             public override void Activate() {
                 SetupInterfaces();
                 setWaterTileColorInfo = typeof(MapEdit).GetMethod("SetWaterTileColor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                bakePathingCostsForCell = typeof(World).GetMethod("BakePathingCostsForCell", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                unitsInfo = typeof(OrdersManager).GetField("units", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                bakeCell = typeof(World).GetMethod("BakeCell", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 QueryForCriteria.SetCriterias(this);
             }
 
@@ -61,7 +59,7 @@ namespace Phedg1Studios {
                     if (isClick) {
                         cell.landMassIdx = QueryForCriteria.neighbourIdxs[cellIndex];
                         cell.StorePostGenerationType();
-                        bakePathingCostsForCell.Invoke(World.inst, new object[] { cell });
+                        bakeCell.Invoke(World.inst, new object[] { cell });
                     }
                     cellIndex += 1;
                 }
@@ -76,9 +74,7 @@ namespace Phedg1Studios {
                 int sizeZ = Mathf.Abs(maxZ - minZ) + 1;
                 int offset = 4;
 
-                System.Collections.ICollection units = (System.Collections.ICollection)unitsInfo.GetValue(OrdersManager.inst);
-                foreach (object unitObject in units) {
-                    IMoveableUnit unit = (IMoveableUnit)unitObject;
+                foreach (IMoveableUnit unit in OrdersManager.inst.units) {
                     Vector3 unitPos = (unit).GetPos();
                     if (unitPos.x > minX - offset && unitPos.x < minX + sizeX + offset) {
                         if (unitPos.z > minZ - offset && unitPos.z < minZ + sizeZ + offset) {
