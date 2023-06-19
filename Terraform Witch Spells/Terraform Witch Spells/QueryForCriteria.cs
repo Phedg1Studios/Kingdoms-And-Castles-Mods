@@ -23,25 +23,43 @@ namespace Phedg1Studios {
             static private ResourceAmount resourceAmount = new ResourceAmount();
 
             static public GameObject cursorObject;
-            static public string cursorColour = "red";
-            static private System.Reflection.MethodInfo updateCellSelectorMethod;
+            static private List<Material> cursorObjectMaterials = new List<Material>();
+            static public int cellColour = 0;
+            static public int objectColour = 0;
+            static public int cursorColour = 0;
             static private Vector3 leftMouseDownPos;
             static private Vector3 rightMouseDownPos;
             static private List<int> leftMouseDownCell;
-            static private ObjectHighlighter highlighter;
-            static private ObjectHighlighter hoverHighlighter;
+            static public ObjectHighlighter cursorModelOutline;
+            static public ObjectHighlighter cellModelOutline;
+            static public ObjectHighlighter cellBorderOutline;
             static public List<int> neighbourIdxs = new List<int>();
             static private List<int> nullPos = new List<int>() { -1000000, -1000000, -1000000 };
             static private Building nullBuilding;
             static private int previousLandmassIdx;
             static private bool cursorRotateable = false;
             static private bool buildTabClicked = false;
-            static private System.Reflection.FieldInfo unitsInfo;
             static private System.Reflection.FieldInfo fishInfo;
+            static private System.Reflection.FieldInfo levelUpInfo;
+            static private System.Reflection.FieldInfo selectorHighlighterInfo;
+            static private Building building;
+            static private GameObject emptyObject = new GameObject();
+            static public List<GameObject> cellModels = new List<GameObject>();
+            static private Selection selection = Selection.Empty;
+
+            enum Selection {
+                Empty,
+                CellBorder,
+                CellModel,
+                CursorModel
+            }
+
 
             private void Awake() {
-                unitsInfo = typeof(OrdersManager).GetField("units", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                DontDestroyOnLoad(emptyObject);
                 fishInfo = typeof(FishSystem).GetField("fish", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                levelUpInfo = typeof(LevelUpUI).GetField("showing", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                selectorHighlighterInfo = typeof(Selector).GetField("highlighter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 GameObject buildingObject = new GameObject();
                 buildingObject.transform.position = new Vector3(0, 0, 0);
                 nullBuilding = buildingObject.AddComponent<Building>();
@@ -53,7 +71,7 @@ namespace Phedg1Studios {
             }
 
             static public void SetCriterias(StreamerEffectQuery givenEffectQuery) {
-                updateCellSelectorMethod = typeof(GameUI).GetMethod("UpdateCellSelector", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                TerraformWitchSpells.helper.Log("Set Criterias");
                 streamerEffectQuery = givenEffectQuery;
                 criteriaIndex = 0;
                 buildTabClicked = false;
@@ -63,14 +81,9 @@ namespace Phedg1Studios {
                 leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
                 ResetTracking();
                 SfxSystem.PlayUiSelect();
+                GameUI.inst.ClearCellSelected();
+                GameUI.inst.CellSelector.gameObject.SetActive(false);
             }
-
-
-
-
-
-
-
 
             private void LateUpdate() {
                 if (criteriaIndex != -1) {
@@ -98,32 +111,37 @@ namespace Phedg1Studios {
                             EvaluateCell();
                         }
                     }
-
-                    GameUI.inst.UpdateUIScaling();
+                    
                     //GameUI.inst.UpdateTooltips();
 
                     if (PointingSystem.GetPointer().GetPrimaryUp()) {
-                        if (!LevelUpUI.IsShowing() && !Cam.inst.IsDragging() && leftMouseDownPos.x != nullPos[0] && ((double)Vector3.Distance(leftMouseDownPos, Input.mousePosition) < 4.0 || streamerEffectQuery.IsDragable())) {
+                        if (!(bool)levelUpInfo.GetValue(GameUI.inst.levelUpUI) && !Cam.inst.IsDragging() && leftMouseDownPos.x != nullPos[0] && ((double)Vector3.Distance(leftMouseDownPos, Input.mousePosition) < 4.0 || streamerEffectQuery.IsDragable())) {
                             DoPrimaryClick();
                         }
                         leftMouseDownPos = new Vector3(nullPos[0], nullPos[1], nullPos[2]);
                     }
-
                     if (ConfigurableControls.inst.GetInputActionKeyDown(InputActions.RotateBuilding)) {
                         GameUI.inst.TryRotateHeldBuilding(true);
                     }
-
-                    updateCellSelectorMethod.Invoke(GameUI.inst, new object[0]);
                     if (GameUI.inst.workerUI.Visible || GameUI.inst.constructUI.Visible || (GameUI.inst.shipUI.Visible || GameUI.inst.merchantUI.Visible)) {
                         GameUI.inst.creativeModeOptions.GetComponent<CreativeModeOptions>().HideOptions();
                     } else {
                         GameUI.inst.creativeModeOptions.SetActive(Player.inst.creativeMode);
                     }
-                    if (highlighter != null) {
-                        highlighter.SetOutlineImmediate(1);
-                    }
-                    if (hoverHighlighter != null) {
-                        hoverHighlighter.SetOutlineImmediate(0);
+                    if (selection == Selection.CursorModel) {
+                        if (cursorModelOutline != null) {
+                            cursorModelOutline.SetOutlineImmediate(objectColour);
+                        }
+                    } else if (selection == Selection.CellModel) {
+                        if (cellModelOutline != null) {
+                            cellModelOutline.SetOutlineImmediate(objectColour);
+                        }
+                    } else if (selection == Selection.CellBorder) {
+                        GameUI.inst.CellHighlighter.Tick(Time.unscaledDeltaTime);
+                        if (cellBorderOutline != null) {
+                            TerraformWitchSpells.helper.Log("a");
+                            cellBorderOutline.SetOutlineImmediate(cellColour);
+                        }
                     }
                     if (buildTabClicked) {
                         buildTabClicked = false;
@@ -164,8 +182,10 @@ namespace Phedg1Studios {
                         Vector3 size = new Vector3();
                         List<int> corner = Util.GetCornerOfBuilding(position, originalSize, rotation, ref size);
                         List<int> direction = new List<int>() { 1, 1 };
+                        Vector3 center = new Vector3(cell.x + 0.5f, 0, cell.z + 0.5f);
 
                         if (streamerEffectQuery.IsDragable() && leftMouseDownCell[0] >= 0 && leftMouseDownCell[1] >= 0) {
+                            center = (center + new Vector3(leftMouseDownCell[0] + 0.5f, 0, leftMouseDownCell[1] + 0.5f)) / 2;
                             corner = new List<int>() { leftMouseDownCell[0], leftMouseDownCell[1] };
                             size = new Vector3(Mathf.Abs(cell.x - leftMouseDownCell[0]) + 1, 0, Mathf.Abs(cell.z - leftMouseDownCell[1]) + 1);
                             if (size.x != 1) {
@@ -183,9 +203,8 @@ namespace Phedg1Studios {
                         neighbourIdxs.Clear();
 
                         Dictionary<int, List<int>> invalidUnitcells = new Dictionary<int, List<int>>();
-                        System.Collections.ICollection units = (System.Collections.ICollection)unitsInfo.GetValue(OrdersManager.inst);
-                        foreach (object unit in units) {
-                            Vector3 unitPos = ((IMoveableUnit)unit).GetPos();
+                        foreach (IMoveableUnit unit in OrdersManager.inst.units) {
+                            Vector3 unitPos = unit.GetPos();
                             List<int> adjustedPos = new List<int>() {
                                 Mathf.FloorToInt(unitPos.x),
                                 Mathf.FloorToInt(unitPos.z),
@@ -207,6 +226,11 @@ namespace Phedg1Studios {
 
                         Dictionary<int, Dictionary<int, List<int>>> neighbouringCells = new Dictionary<int, Dictionary<int, List<int>>>();
 
+
+                        foreach (GameObject model in cellModels) {
+                            model.SetActive(true);
+                        }
+                        cellModels.Clear();
                         for (int x = 0; x < size.x; x++) {
                             for (int z = 0; z < size.z; z++) {
                                 if (cellValidNew && landmassGold >= cost + streamerEffectQuery.spellData.cost && (streamerEffectQuery.IsDragable() == false || validCells.Count == 0 || streamerEffectQuery.spellData.cooldown == 0)) {
@@ -573,25 +597,74 @@ namespace Phedg1Studios {
                             }
                         }
 
-                        /*
-                        GameUI.inst.SelectCell(cell, true, false);
+
+                        GameUI.inst.CellHighlighter.mode = Selector.Mode.Highlighting;
+                        center.y = Mathf.Max(0.0f, center.y);
+                        GameUI.inst.CellHighlighter.SetTargetWorldBounds(center, size);
+                        //GameUI.inst.CellHighlighter.fill.SetActive(true);
+                        //GameUI.inst.CellHighlighter.SetFillY(0.075f);
                         if (cellValidNew) {
                             List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
                             List<SkinnedMeshRenderer> skinnedMeshRenderers = new List<SkinnedMeshRenderer>();
                             if (cell.OccupyingStructure.Count > 0) {
+                                Building building = cell.OccupyingStructure[cell.OccupyingStructure.Count - 1];
                                 GameObject model = cell.OccupyingStructure[cell.OccupyingStructure.Count - 1].transform.GetChild(0).gameObject;
                                 AppendRenderers(model, ref meshRenderers, ref skinnedMeshRenderers);
-                                hoverHighlighter = ObjectHighlighter.SetupOutlines(null, meshRenderers, skinnedMeshRenderers);
+                                cellModelOutline = ObjectHighlighter.SetupOutlines(emptyObject, meshRenderers, skinnedMeshRenderers);
+                                if (selection == Selection.Empty || selection == Selection.CellBorder) {
+                                    selection = Selection.CellModel;
+                                    GameUI.inst.CellHighlighter.gameObject.SetActive(false);
+                                }
                             } else if (cell.Models != null && cell.Models.Count > 0) {
                                 foreach (GameObject model in cell.Models) {
                                     AppendRenderers(model, ref meshRenderers, ref skinnedMeshRenderers);
+                                    if (!model.activeSelf) {
+                                        cellModels.Add(model);
+                                        model.SetActive(true);
+                                    }
                                 }
-                                hoverHighlighter = ObjectHighlighter.SetupOutlines(null, meshRenderers, skinnedMeshRenderers);
+                                cellModelOutline = ObjectHighlighter.SetupOutlines(emptyObject, meshRenderers, skinnedMeshRenderers);
+                                if (selection == Selection.Empty || selection == Selection.CellBorder) {
+                                    selection = Selection.CellModel;
+                                    GameUI.inst.CellHighlighter.gameObject.SetActive(false);
+                                }
+                            } else if (cell.Type == ResourceType.WitchHut) {
+                                for (int childIndex = 0; childIndex < World.inst.caveContainer.transform.childCount; childIndex++) {
+                                    Transform resourceTransform = World.inst.caveContainer.transform.GetChild(childIndex);
+                                    if (Mathf.RoundToInt(resourceTransform.position.x) == cell.x && Mathf.RoundToInt(resourceTransform.position.z) == cell.z) {
+                                        GameObject model = resourceTransform.gameObject;
+                                        AppendRenderers(model, ref meshRenderers, ref skinnedMeshRenderers);
+                                        if (!model.activeSelf) {
+                                            cellModels.Add(model);
+                                            model.SetActive(true);
+                                        }
+                                        cellModelOutline = ObjectHighlighter.SetupOutlines(emptyObject, meshRenderers, skinnedMeshRenderers);
+                                        if (selection == Selection.Empty || selection == Selection.CellBorder) {
+                                            selection = Selection.CellModel;
+                                            GameUI.inst.CellHighlighter.gameObject.SetActive(false);
+                                        }
+                                        break;
+                                    }
+                                }
+                            } else {
+                                if (selection == Selection.Empty || selection == Selection.CellModel) {
+                                    selection = Selection.CellBorder;
+                                    GameUI.inst.CellHighlighter.gameObject.SetActive(true);
+                                    if (cellModelOutline != null) {
+                                        cellModelOutline.Release();
+                                    }
+                                }
                             }
                         } else {
-                            hoverHighlighter = null;
+                            if (cellModelOutline != null) {
+                                cellModelOutline.Release();
+                            }
+                            cellModelOutline = null;
+                            if (selection == Selection.Empty || selection == Selection.CellModel) {
+                                selection = Selection.CellBorder;
+                                GameUI.inst.CellHighlighter.gameObject.SetActive(true);
+                            }
                         }
-                        */
                     } else {
                         cellValidNew = cellValid;
                     }
@@ -599,11 +672,20 @@ namespace Phedg1Studios {
                     cellValidNew = cellValid;
                 }
                 if (cellIsACell && cellValidNew != cellValid) {
+                    TerraformWitchSpells.helper.Log("Peter, cell was evaluated as: " + cellValidNew.ToString());
                     cellValid = cellValidNew;
+                    float invalid;
                     if (cellValid) {
-                        cursorColour = "blue";
+                        invalid = 0f;
+                        cellColour = 0;
+                        objectColour = 1;
                     } else {
-                        cursorColour = "red";
+                        invalid = 1f;
+                        cellColour = 2;
+                        objectColour = 2;
+                    }
+                    foreach (Material material in cursorObjectMaterials) {
+                        material.SetFloat("_Invalid", invalid);
                     }
                 }
             }
@@ -660,6 +742,14 @@ namespace Phedg1Studios {
             }
 
             static public void ResetTracking() {
+                foreach (GameObject model in cellModels) {
+                    model.SetActive(false);
+                }
+                cellModels.Clear();
+                if (cellModelOutline != null) {
+                    cellModelOutline.Release();
+                }
+                selection = Selection.Empty;
                 SetCursorPrefab();
                 previousCell = new List<int>() { nullPos[0], nullPos[2] };
                 leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
@@ -669,6 +759,7 @@ namespace Phedg1Studios {
             }
 
             static public void StopSpelling(bool forceQuit = false) {
+                TerraformWitchSpells.helper.Log("Stopped");
                 if (criteriaIndex != -1) {
                     criteriaIndex = -1;
                     leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
@@ -704,21 +795,17 @@ namespace Phedg1Studios {
                     cells.Clear();
                     SetCursorPrefab(true);
                     if (GameUI.inst.CellSelector != null) {
-                        GameUI.inst.SelectCell(null, true, false);
+                        GameUI.inst.SelectCell(null, false);
+                    }
+                    if (cellModelOutline != null) {
+                        cellModelOutline.Release();
                     }
                 }
             }
 
-
-
-
-
-
-
-
             static public void SetCursorPrefab(bool setAsNull = false) {
                 if (cursorObject != null) {
-                    highlighter.Release();
+                    cursorModelOutline.Release();
                     DestroyImmediate(cursorObject);
                     cursorRotateable = false;
                 }
@@ -751,10 +838,32 @@ namespace Phedg1Studios {
                                 }
                             }
 
+                            Material orig = World.GetLandmassOwner(latestCell.landMassIdx).BuildingMaterial;
+                            Material material2 = new Material(orig);
+                            material2.SetFloat("_Disabled", 0.0f);
+                            material2.SetFloat("_Invalid", 0.0f);
+                            material2.SetFloat("_WallProgress", 1f);
+                            material2.SetFloat("_MinHeight", float.MinValue);
+                            material2.SetFloat("_MaxHeight", float.MaxValue);
+                            material2.SetVector("_BreakPoint", Vector4.zero);
+                            material2.SetVector("_BreakOffset", Vector4.zero);
+                            material2.SetFloat("_MinYAdjustment", 0f);
+                            material2.SetFloat("_MaxYAdjustment", 0f);
+                            material2.SetFloat("_Width", (float)World.inst.GridWidth);
+                            material2.SetFloat("_Height", (float)World.inst.GridHeight);
+
+                            cursorObjectMaterials = new List<Material>();
+                            foreach (Renderer componentsInChild in cursorObject.transform.GetComponentsInChildren<Renderer>(true)) {
+                                componentsInChild.material = material2;
+                                cursorObjectMaterials.Add(componentsInChild.material);
+                            }
+
                             List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
                             List<SkinnedMeshRenderer> skinnedMeshRenderers = new List<SkinnedMeshRenderer>();
                             AppendRenderers(cursorObject, ref meshRenderers, ref skinnedMeshRenderers);
-                            highlighter = ObjectHighlighter.SetupOutlines(cursorObject, meshRenderers, skinnedMeshRenderers);
+                            cursorModelOutline = ObjectHighlighter.SetupOutlines(emptyObject, meshRenderers, skinnedMeshRenderers);
+
+                            selection = Selection.CursorModel;
                         }
                     }
                 }
@@ -806,13 +915,6 @@ namespace Phedg1Studios {
                 Log("-------------------------------------------------------------------");
             }
 
-
-
-
-
-
-
-
             // Display the tooltip for spell query
             [HarmonyPatch(typeof(BuildInfoUI))]
             [HarmonyPatch("Update")]
@@ -834,18 +936,6 @@ namespace Phedg1Studios {
                         __instance.buildCostParent.gameObject.SetActive(showCost);
                         __instance.costTextUI.SetText(resourceAmount.ToString(" "));
                         __instance.ruleTextUI.text = Translation.GetTranslation(cellInvalidReason);
-                    }
-                }
-            }
-
-            // Fix the colour of the border
-            [HarmonyPatch(typeof(GameUI))]
-            [HarmonyPatch("UpdateCellSelector")]
-            public static class GameUIUpdateCellSelector {
-                static void Postfix() {
-                    if (criteriaIndex != -1) {
-                        GameUI.inst.CellSelector.GetComponent<Selector>().SetColor(TerraformWitchSpells.colours[cursorColour]);
-                        Camera.main.GetComponent<OutlineEffect>().lineColor1 = TerraformWitchSpells.colours[cursorColour];
                     }
                 }
             }
@@ -927,11 +1017,21 @@ namespace Phedg1Studios {
                 }
             }
 
-            // Prevent standard click functionality from happening when spell is active
+            // Upgrade spell list into a scroll
             [HarmonyPatch(typeof(GameUI))]
+            [HarmonyPatch("Start")]
+            public static class GameUIStart {
+                [HarmonyPriority(200)]
+                static void Postfix(GameUI __instance) {
+                    cellBorderOutline = (ObjectHighlighter)selectorHighlighterInfo.GetValue(__instance.CellHighlighter);
+                }
+            }
+
+            // Prevent standard click functionality from happening when spell is active
+                [HarmonyPatch(typeof(GameUI))]
             [HarmonyPatch("Update")]
             public static class GameUIUpdate {
-                static bool Prefix() {
+                static bool Prefix(GameUI __instance) {
                     return DontRunIfSpelling();
                 }
             }

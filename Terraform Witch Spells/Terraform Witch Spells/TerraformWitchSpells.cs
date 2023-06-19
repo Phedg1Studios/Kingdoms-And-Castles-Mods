@@ -12,37 +12,39 @@ using Assets;
 using Assets.Code;
 using static Phedg1Studios.TerraformWitchSpells.Util;
 using Phedg1Studios.Shared;
+/*
 using Zat.Shared.ModMenu.API;
 using Zat.Shared.ModMenu.Interactive;
+*/
 
 namespace Phedg1Studios {
     namespace TerraformWitchSpells {
         public class TerraformWitchSpells : MonoBehaviour {
+            const string interopName = "Phedg1TerraformWitchSpells";
             static public KCModHelper helper;
             public Util util;
-            static public MapEdit mapEdit;
             public QueryForCriteria queryForCriteria;
-
             static public int speedBackup;
-            static public Dictionary<string, UnityEngine.Color> colours = new Dictionary<string, UnityEngine.Color>();
 
-            private InteractiveConfiguration<ModMenuSettings> config;
-            private UnityAction<Exception> modMenuException;
+            //private InteractiveConfiguration<ModMenuSettings> config;
+            //private UnityAction<Exception> modMenuException;
+
+
+
 
             // Initialize systems
             void Preload(KCModHelper helper) {
                 TerraformWitchSpells.helper = helper;
-                Zat.Shared.Debugging.Helper = helper;
+                //Zat.Shared.Debugging.Helper = helper;
                 Application.logMessageReceived += OnLogMessageReceived;
 
                 //Log(LocalizationManager.CurrentLanguageCode);
                 util = gameObject.AddComponent<Util>();
                 queryForCriteria = gameObject.AddComponent<QueryForCriteria>();
-                mapEdit = new MapEdit();
 
+                Porg.InteropClient.Register(interopName);
                 var harmony = HarmonyInstance.Create("harmony");
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
-                SetSpells();
 
                 Assembly assembly = Assembly.GetAssembly(typeof(Water));
                 System.Type type = assembly.GetType("Assets.Code.KeyboardControl");
@@ -51,10 +53,13 @@ namespace Phedg1Studios {
                 harmony.Patch(methodInfoA.GetBaseDefinition(), new HarmonyMethod(methodInfoB), null, null);
             }
 
-            // Initialize variables
-            void SceneLoaded(KCModHelper helper) {
+            public void PreScriptLoad(KCModHelper helper) {
+                Shared.RegisterSpells.Setup(helper);
+                Shared.Util.Setup(helper, this.gameObject);
+                SetSpells();
             }
 
+            /*
             void Start() {
                 modMenuException += ModMenuException;
                 config = new InteractiveConfiguration<ModMenuSettings>();
@@ -72,101 +77,109 @@ namespace Phedg1Studios {
                 Log(exception.Message);
                 Log(exception.StackTrace);
             }
+            */
 
             public void SetSpells() {
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 75,
                     cooldown = 0,
                     spellImpl = typeof(StreamerEffect_IncreaseFertility),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_IncreaseFertility.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.ReallyLIkesYou,
                     scaleCost = false,
                     twitchVotable = false,
                 });
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 75,
                     cooldown = 0,
                     spellImpl = typeof(StreamerEffect_DecreaseFertility),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_DecreaseFertility.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.ReallyLIkesYou,
                     scaleCost = false,
                     twitchVotable = false,
                 });
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 100,
                     cooldown = 0,
                     spellImpl = typeof(StreamerEffect_IncreaseElevation),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_IncreaseElevation.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
                     twitchVotable = false,
                 });
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 100,
                     cooldown = 0,
                     spellImpl = typeof(StreamerEffect_DecreaseElevation),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_DecreaseElevation.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
                     twitchVotable = false,
                 });
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 2000,
                     cooldown = 10,
                     spellImpl = typeof(StreamerEffect_RelocateStone),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_RelocateStone.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.LovesYou,
                     scaleCost = false,
                     twitchVotable = false,
                 });
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 2000,
                     cooldown = 10,
                     spellImpl = typeof(StreamerEffect_RelocateIron),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_RelocateIron.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.LovesYou,
                     scaleCost = false,
                     twitchVotable = false,
                 });
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 4000,
                     cooldown = 25,
                     spellImpl = typeof(StreamerEffect_TransmuteRock),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_TransmuteRock.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
                     twitchVotable = false,
                 });
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 2000,
                     cooldown = 100,
                     spellImpl = typeof(StreamerEffect_RelocateWitchHut),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_RelocateWitchHut.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
                     twitchVotable = false,
                 });
-                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                RegisterSpells.Add(new SpellDataCustom() {
                     cost = 4000,
                     cooldown = 100,
                     spellImpl = typeof(StreamerEffect_RelocateKeep),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_RelocateKeep.GetTermSegment() + "Title",
+                    interopName = interopName,
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
                     twitchVotable = false,
                 });
             }
-
-
 
             static public void BackupSpeed() {
                 if (SpeedControlUI.inst.pauseButton.isOn) {
@@ -195,17 +208,21 @@ namespace Phedg1Studios {
             }
             */
 
-            // Get default colours
             [HarmonyPatch(typeof(GameUI))]
-            [HarmonyPatch("Start")]
-            public static class GameUIStart {
+            [HarmonyPatch("UpdateCellSelector")]
+            public static class GameUIUpdateCellSelector {
                 static void Postfix(GameUI __instance) {
-                    colours.Clear();
-                    System.Reflection.FieldInfo fieldInfo = typeof(GameUI).GetField("blue", BindingFlags.NonPublic | BindingFlags.Instance);
-                    colours.Add("blue", (UnityEngine.Color)fieldInfo.GetValue(__instance));
-                    fieldInfo = typeof(GameUI).GetField("red", BindingFlags.NonPublic | BindingFlags.Instance);
-                    colours.Add("red", (UnityEngine.Color)fieldInfo.GetValue(__instance));
-                    colours.Add("white", UnityEngine.Color.white);
+                    //TerraformWitchSpells.helper.Log("GameUIUpdateCellSelector");
+                    // Do this if drag selecting
+                    //__instance.CellHighlighter.fill.SetActive(true);
+
+                    //helper.Log(__instance.GetCellSelected().ToString());
+                    //helper.Log("--");
+
+                    // Peter, without this line here the border just doesn't work. Figure that out first.
+                    // Do this to show border
+                    //__instance.CellHighlighter.mode = Selector.Mode.Highlighting;
+                   // __instance.CellHighlighter.
                 }
             }
         }

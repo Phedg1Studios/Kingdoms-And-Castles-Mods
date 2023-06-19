@@ -42,9 +42,10 @@ namespace Phedg1Studios {
                             newType = ResourceType.IronDeposit;
                         }
                     }
-
+                    QueryForCriteria.cellModels.Clear();
                     World.inst.RemoveStone(cells[0][0], false);
-                    World.inst.PlaceStone(cells[0][0].x, cells[0][0].z, newType);
+
+                    World.inst.PlaceStone(cells[0][0], newType);
                     cells[0][0].StorePostGenerationType();
                     World.inst.CombineStone();
                 }

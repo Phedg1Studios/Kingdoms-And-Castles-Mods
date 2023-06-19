@@ -43,7 +43,6 @@ namespace Phedg1Studios {
 
             public override void UpdateDataAndDisplay(List<List<Cell>> cells, bool isClick) {
                 if (isClick) {
-
                     for (int childIndex = 0; childIndex < World.inst.caveContainer.transform.childCount; childIndex++) {
                         Vector3 position = World.inst.caveContainer.transform.GetChild(childIndex).position;
                         if (Mathf.RoundToInt(position.x) == cells[0][0].x && Mathf.RoundToInt(position.z) == cells[0][0].z) {
