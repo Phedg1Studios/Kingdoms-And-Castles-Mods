@@ -82,6 +82,7 @@ namespace Phedg1Studios {
                     locKey = "Votable" + StreamerEffect_IncreaseFertility.GetTermSegment() + "Title",
                     relationship = WitchHut.Relationship.ReallyLIkesYou,
                     scaleCost = false,
+                    twitchVotable = false,
                 });
                 RegisterSpells.spellData.Add(new SpellDataCustom() {
                     cost = 75,
@@ -91,6 +92,7 @@ namespace Phedg1Studios {
                     locKey = "Votable" + StreamerEffect_DecreaseFertility.GetTermSegment() + "Title",
                     relationship = WitchHut.Relationship.ReallyLIkesYou,
                     scaleCost = false,
+                    twitchVotable = false,
                 });
                 RegisterSpells.spellData.Add(new SpellDataCustom() {
                     cost = 100,
@@ -100,6 +102,7 @@ namespace Phedg1Studios {
                     locKey = "Votable" + StreamerEffect_IncreaseElevation.GetTermSegment() + "Title",
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
+                    twitchVotable = false,
                 });
                 RegisterSpells.spellData.Add(new SpellDataCustom() {
                     cost = 100,
@@ -109,24 +112,37 @@ namespace Phedg1Studios {
                     locKey = "Votable" + StreamerEffect_DecreaseElevation.GetTermSegment() + "Title",
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
+                    twitchVotable = false,
                 });
                 RegisterSpells.spellData.Add(new SpellDataCustom() {
-                    cost = 500,
-                    cooldown = 0,
+                    cost = 2000,
+                    cooldown = 10,
                     spellImpl = typeof(StreamerEffect_RelocateStone),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_RelocateStone.GetTermSegment() + "Title",
                     relationship = WitchHut.Relationship.LovesYou,
                     scaleCost = false,
+                    twitchVotable = false,
                 });
                 RegisterSpells.spellData.Add(new SpellDataCustom() {
-                    cost = 500,
-                    cooldown = 0,
+                    cost = 2000,
+                    cooldown = 10,
                     spellImpl = typeof(StreamerEffect_RelocateIron),
                     color = TwitchBonus.buffColor,
                     locKey = "Votable" + StreamerEffect_RelocateIron.GetTermSegment() + "Title",
                     relationship = WitchHut.Relationship.LovesYou,
                     scaleCost = false,
+                    twitchVotable = false,
+                });
+                RegisterSpells.spellData.Add(new SpellDataCustom() {
+                    cost = 4000,
+                    cooldown = 25,
+                    spellImpl = typeof(StreamerEffect_TransmuteRock),
+                    color = TwitchBonus.buffColor,
+                    locKey = "Votable" + StreamerEffect_TransmuteRock.GetTermSegment() + "Title",
+                    relationship = WitchHut.Relationship.FriendsForever,
+                    scaleCost = false,
+                    twitchVotable = false,
                 });
                 RegisterSpells.spellData.Add(new SpellDataCustom() {
                     cost = 2000,
@@ -136,6 +152,7 @@ namespace Phedg1Studios {
                     locKey = "Votable" + StreamerEffect_RelocateWitchHut.GetTermSegment() + "Title",
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
+                    twitchVotable = false,
                 });
                 RegisterSpells.spellData.Add(new SpellDataCustom() {
                     cost = 4000,
@@ -145,6 +162,7 @@ namespace Phedg1Studios {
                     locKey = "Votable" + StreamerEffect_RelocateKeep.GetTermSegment() + "Title",
                     relationship = WitchHut.Relationship.FriendsForever,
                     scaleCost = false,
+                    twitchVotable = false,
                 });
             }
 

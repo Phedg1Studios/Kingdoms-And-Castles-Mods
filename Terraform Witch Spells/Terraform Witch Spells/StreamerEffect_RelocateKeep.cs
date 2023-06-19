@@ -14,6 +14,7 @@ namespace Phedg1Studios {
                     "noResourseLand",
                     "noStructure",
                     "playerLandmass",
+                    "noUnits",
                 },
             };
             public override List<Vector3> sizes => new List<Vector3>() {

@@ -2,7 +2,9 @@
 using UnityEngine;
 using Assets;
 using Assets.Code;
+using System.Linq;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 using cakeslice;
 using Phedg1Studios.Shared;
 using static Phedg1Studios.TerraformWitchSpells.Util;
@@ -24,6 +26,7 @@ namespace Phedg1Studios {
             static public string cursorColour = "red";
             static private System.Reflection.MethodInfo updateCellSelectorMethod;
             static private Vector3 leftMouseDownPos;
+            static private Vector3 rightMouseDownPos;
             static private List<int> leftMouseDownCell;
             static private ObjectHighlighter highlighter;
             static private ObjectHighlighter hoverHighlighter;
@@ -33,8 +36,12 @@ namespace Phedg1Studios {
             static private int previousLandmassIdx;
             static private bool cursorRotateable = false;
             static private bool buildTabClicked = false;
+            static private System.Reflection.FieldInfo unitsInfo;
+            static private System.Reflection.FieldInfo fishInfo;
 
             private void Awake() {
+                unitsInfo = typeof(OrdersManager).GetField("units", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                fishInfo = typeof(FishSystem).GetField("fish", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 GameObject buildingObject = new GameObject();
                 buildingObject.transform.position = new Vector3(0, 0, 0);
                 nullBuilding = buildingObject.AddComponent<Building>();
@@ -42,6 +49,7 @@ namespace Phedg1Studios {
                 buildingObject.transform.GetChild(0).position = new Vector3(0, 0, 0);
                 nullBuilding.dragPlacementMode = Building.DragPlacementMode.Rectangle;
                 DontDestroyOnLoad(buildingObject);
+                rightMouseDownPos = new Vector3(nullPos[0], nullPos[1], nullPos[2]);
             }
 
             static public void SetCriterias(StreamerEffectQuery givenEffectQuery) {
@@ -75,11 +83,20 @@ namespace Phedg1Studios {
                             leftMouseDownPos = Input.mousePosition;
                         }
                     }
-
-                    if (ConfigurableControls.inst.GetInputActionKeyDown(InputActions.EscapeButtonBehavior)) {
-                        StopSpelling();
-                    } else {
-                        EvaluateCell();
+                    if (PointingSystem.GetPointer().GetSecondaryDown()) {
+                        rightMouseDownPos = Input.mousePosition;
+                    }
+                    if (PointingSystem.GetPointer().GetSecondaryUp()) {
+                        if (!Cam.inst.IsDragging() && (double)Vector3.Distance(rightMouseDownPos, Input.mousePosition) < 4.0) {
+                            StopSpelling();
+                        }
+                    }
+                    if (criteriaIndex != -1) {
+                        if (ConfigurableControls.inst.GetInputActionKeyDown(InputActions.EscapeButtonBehavior)) {
+                            StopSpelling();
+                        } else {
+                            EvaluateCell();
+                        }
                     }
 
                     GameUI.inst.UpdateUIScaling();
@@ -164,6 +181,32 @@ namespace Phedg1Studios {
                         int validCellsCount = 0;
                         Dictionary<int, Dictionary<int, int>> elevationCells = new Dictionary<int, Dictionary<int, int>>();
                         neighbourIdxs.Clear();
+
+                        Dictionary<int, List<int>> invalidUnitcells = new Dictionary<int, List<int>>();
+                        System.Collections.ICollection units = (System.Collections.ICollection)unitsInfo.GetValue(OrdersManager.inst);
+                        foreach (object unit in units) {
+                            Vector3 unitPos = ((IMoveableUnit)unit).GetPos();
+                            List<int> adjustedPos = new List<int>() {
+                                Mathf.FloorToInt(unitPos.x),
+                                Mathf.FloorToInt(unitPos.z),
+                            };
+                            if (!invalidUnitcells.ContainsKey(adjustedPos[0])) {
+                                invalidUnitcells.Add(adjustedPos[0], new List<int>());
+                            }
+                            if (!invalidUnitcells[adjustedPos[0]].Contains(adjustedPos[1])) {
+                                invalidUnitcells[adjustedPos[0]].Add(adjustedPos[1]);
+                            }
+                        }
+                        if (streamerEffectQuery.criterias[criteriaIndex].Contains("noFish")) {
+                            //List<FishSystem.Fish> fish = new List<FishSystem.Fish>();
+                            //System.Collections.ICollection fishCollection = (System.Collections.ICollection)fishInfo.GetValue(FishSystem.inst);
+                            //foreach (object fishObject in fishCollection) {
+                            //    fish.Add((FishSystem.Fish)fishObject);
+                            //}
+                        }
+
+                        Dictionary<int, Dictionary<int, List<int>>> neighbouringCells = new Dictionary<int, Dictionary<int, List<int>>>();
+
                         for (int x = 0; x < size.x; x++) {
                             for (int z = 0; z < size.z; z++) {
                                 if (cellValidNew && landmassGold >= cost + streamerEffectQuery.spellData.cost && (streamerEffectQuery.IsDragable() == false || validCells.Count == 0 || streamerEffectQuery.spellData.cooldown == 0)) {
@@ -181,6 +224,13 @@ namespace Phedg1Studios {
                                         if (selectionCell.fertile <= 0 || selectionCell.Type != ResourceType.None) {
                                             thisCellValid = false;
                                             cellInvalidReason = "fertilityNotMin";
+                                        }
+                                    }
+                                    if (streamerEffectQuery.criterias[criteriaIndex].Contains("noUnits")) {
+                                        //if (OrdersManager.inst.FindUnitAt(selectionCell.x, selectionCell.z) != null) {
+                                        if (invalidUnitcells.ContainsKey(selectionCell.x) && invalidUnitcells[selectionCell.x].Contains(selectionCell.z)) {
+                                            thisCellValid = false;
+                                            cellInvalidReason = "noUnits";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("dontSplitLandmass")) {
@@ -212,6 +262,7 @@ namespace Phedg1Studios {
                                                     landmassSize = 0;
                                                 }
                                             }
+                                            Log(uniqueLandmasses.Count);
                                             if (uniqueLandmasses.Count > 1) {
                                                 Dictionary<int, List<int>> uniqueLandmassesCoordinates = new Dictionary<int, List<int>>();
                                                 for (int landmasxIndex = 0; landmasxIndex < uniqueLandmasses.Count - 1; landmasxIndex++) {
@@ -288,14 +339,10 @@ namespace Phedg1Studios {
                                             } else if (uniqueLandmasses.Count == 0) {
                                                 thisCellValid = false;
                                                 cellInvalidReason = "dontEliminateLandmass";
-                                            } else {
-                                                if (!elevationCells.ContainsKey(selectionCell.x)) {
-                                                    elevationCells.Add(selectionCell.x, new Dictionary<int, int>());
-                                                }
-                                                elevationCells[selectionCell.x].Add(selectionCell.z, 0);
                                             }
                                         }
                                     }
+                                    
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("dontJoinLandmass")) {
                                         if (selectionCell.landMassIdx == -1) {
                                             Cell[] neighbours = new Cell[4];
@@ -364,8 +411,12 @@ namespace Phedg1Studios {
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("noStructure")) {
                                         if (selectionCell.OccupyingStructure.Count != 0 ||
                                             selectionCell.SubStructure.Count != 0) {
-                                            thisCellValid = false;
-                                            cellInvalidReason = "noStructure";
+                                            if (selectionCell.OccupyingStructure.Count == 1 && cells.Count > 0 && cells[0][0].OccupyingStructure.Count == 1 && selectionCell.OccupyingStructure[0].guid == cells[0][0].OccupyingStructure[0].guid) {
+
+                                            } else {
+                                                thisCellValid = false;
+                                                cellInvalidReason = "noStructure";
+                                            }
                                         } else {
                                             foreach (int treeId in selectionCell.TreeIds) {
                                                 if (treeId != -1) {
@@ -374,6 +425,24 @@ namespace Phedg1Studios {
                                                     break;
                                                 }
                                             }
+                                        }
+                                    }
+                                    if (streamerEffectQuery.criterias[criteriaIndex].Contains("deepWater")) {
+                                        if (selectionCell.Type != ResourceType.Water || selectionCell.deepWater == false) {
+                                            thisCellValid = false;
+                                            cellInvalidReason = "deepWater";
+                                        }
+                                    }
+                                    if (streamerEffectQuery.criterias[criteriaIndex].Contains("noFish")) {
+                                        if (FishSystem.inst.fishCells[selectionCell.z * World.inst.GridWidth + selectionCell.x].fish.Count > 0) {
+                                            thisCellValid = false;
+                                            cellInvalidReason = "noFish";
+                                        }
+                                    }
+                                    if (streamerEffectQuery.criterias[criteriaIndex].Contains("fishSurvive")) {
+                                        if (FishSystem.inst.fishCells[selectionCell.z * World.inst.GridWidth + selectionCell.x].baseProbability < 0.5f) {
+                                            thisCellValid = false;
+                                            cellInvalidReason = "fishSurvive";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("witch")) {
@@ -392,6 +461,12 @@ namespace Phedg1Studios {
                                         if (selectionCell.Type != ResourceType.IronDeposit) {
                                             thisCellValid = false;
                                             cellInvalidReason = "iron";
+                                        }
+                                    }
+                                    if (streamerEffectQuery.criterias[criteriaIndex].Contains("rock")) {
+                                        if (new List<ResourceType>() { ResourceType.UnusableStone, ResourceType.Stone, ResourceType.IronDeposit }.Contains(selectionCell.Type) == false) {
+                                            thisCellValid = false;
+                                            cellInvalidReason = "rock";
                                         }
                                     }
                                     if (streamerEffectQuery.criterias[criteriaIndex].Contains("keep")) {
@@ -415,6 +490,14 @@ namespace Phedg1Studios {
                                         cellValidNew = false;
                                     }
                                     if (thisCellValid) {
+                                        if (streamerEffectQuery.criterias[criteriaIndex].Contains("dontSplitLandmass")) {
+                                            if (selectionCell.Type == ResourceType.Water && selectionCell.deepWater == false) {
+                                                if (!elevationCells.ContainsKey(selectionCell.x)) {
+                                                    elevationCells.Add(selectionCell.x, new Dictionary<int, int>());
+                                                }
+                                                elevationCells[selectionCell.x].Add(selectionCell.z, 0);
+                                            }
+                                        }
                                         validCells.Add(selectionCell);
                                         neighbourIdxs.Add(neighbourLandmassIdx);
                                         cost += streamerEffectQuery.spellData.cost;
@@ -458,7 +541,7 @@ namespace Phedg1Studios {
                             streamerEffectQuery.RollbackData(validCells);
                         }
 
-                        if (cellValidNew && !streamerEffectQuery.IsDragable() && cell.OccupyingStructure.Count > 0) {
+                        if (cellValidNew && !streamerEffectQuery.IsDragable() && cell.OccupyingStructure.Count > 0 && cells.Count == 0) {
                             Building building = cell.OccupyingStructure[cell.OccupyingStructure.Count - 1];
                             nullBuilding.transform.position = building.transform.position;
                             nullBuilding.size = building.size;
@@ -549,12 +632,18 @@ namespace Phedg1Studios {
                     criteriaIndex += 1;
                     ResetTracking();
                 } else {
-                    if (RegisterSpells.TryActivate(streamerEffectQuery.witchHut, streamerEffectQuery.spellIndex, cells[cells.Count - 1].Count)) {
+                    int activationCount = 0;
+                    if (streamerEffectQuery.draggable) {
+                        activationCount = cells[cells.Count - 1].Count;
+                    }
+                    if (RegisterSpells.TryActivate(streamerEffectQuery.witchHut, streamerEffectQuery.spellIndex, activationCount)) {
+                        int num = 0;
                         WitchHut.SpellData outSpell = null;
-                        int ladmassId = World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx;
-                        int num = streamerEffectQuery.witchHut.TryActivate((WitchHut.Spells)streamerEffectQuery.spellIndex, out outSpell);
+                        num = streamerEffectQuery.witchHut.TryActivate((WitchHut.Spells)streamerEffectQuery.spellIndex, out outSpell);
                         if (num == 0) {
-                            World.GetLandmassOwner(World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx).Gold -= (cells[cells.Count - 1].Count - 1) * streamerEffectQuery.spellData.cost;
+                            if (streamerEffectQuery.draggable) {
+                                World.GetLandmassOwner(World.inst.GetCellData(streamerEffectQuery.witchHut.transform.position).landMassIdx).Gold -= (cells[cells.Count - 1].Count - 1) * streamerEffectQuery.spellData.cost;
+                            }
                             spellUsed = true;
                             streamerEffectQuery.UpdateDataAndDisplay(cells);
                             if (RegisterSpells.TryActivate(streamerEffectQuery.witchHut, streamerEffectQuery.spellIndex)) {
@@ -585,12 +674,13 @@ namespace Phedg1Studios {
                     leftMouseDownCell = new List<int>() { nullPos[0], nullPos[2] };
 
                     if (!forceQuit) {
+                        SpeedControlUI.inst.SetSpeed(TerraformWitchSpells.speedBackup);
                         if (spellUsed) {
                             streamerEffectQuery.ShowBanner();
                         } else {
                             SfxSystem.PlayUiCancel();
                         }
-                        SpeedControlUI.inst.SetSpeed(TerraformWitchSpells.speedBackup);
+                        
                         TerrainGen.inst.UpdateTextures();
                         World.inst.CombineStone();
                         foreach (List<Cell> cellList in cells) {
@@ -658,7 +748,6 @@ namespace Phedg1Studios {
                                     newModel.transform.localPosition = model.transform.localPosition - new Vector3(latestCell.x, 0, latestCell.z);
                                     newModel.transform.localScale = model.transform.localScale;
                                     newModel.SetActive(true);
-                                    //model.SetActive(false);
                                 }
                             }
 
@@ -878,6 +967,68 @@ namespace Phedg1Studios {
                         return false;
                     }
                     return true;
+                }
+            }
+
+            static private List<Code> treeGrowthUpdateCode = new List<Code>() {
+                new Code(OpCodes.Ldsfld, "World inst"),
+                new Code(OpCodes.Callvirt, "Int32 get_GridWidth()"),
+                new Code(OpCodes.Ldsfld, "World inst"),
+                new Code(OpCodes.Callvirt, "Int32 get_GridHeight()"),
+                new Code(OpCodes.Mul, "null"),
+                new Code(OpCodes.Conv_R4, "null"),
+                new Code(OpCodes.Stloc_1, "null"),
+                new Code(OpCodes.Ldarg_0, "null"),
+                new Code(OpCodes.Dup, "null"),
+                new Code(OpCodes.Ldfld, "System.Single cellsPerTick"),
+                new Code(OpCodes.Ldloc_1, "null"),
+                new Code(OpCodes.Ldarg_0, "null"),
+                new Code(OpCodes.Ldfld, "System.Single updateInterval"),
+                new Code(OpCodes.Div, "null"),
+                new Code(OpCodes.Ldloc_0, "null"),
+                new Code(OpCodes.Mul, "null"),
+                new Code(OpCodes.Ldc_R4, "1"),
+            };
+
+            [HarmonyPatch(typeof(TreeGrowth))]
+            [HarmonyPatch("Update")]
+            public static class TreeGrowthUpdate {
+                static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+                    List<CodeInstruction> codes = new List<CodeInstruction>(instructions);
+                    int startIndex = -1;
+
+
+                    for (int codeIndex = 0; codeIndex < codes.Count - treeGrowthUpdateCode.Count + 1; codeIndex++) {
+                        for (int keyIndex = 0; keyIndex < treeGrowthUpdateCode.Count; keyIndex++) {
+                            if (codes[codeIndex + keyIndex].opcode == treeGrowthUpdateCode[keyIndex].opCode && NullSafeToString(codes[codeIndex + keyIndex].operand) == treeGrowthUpdateCode[keyIndex].operand) {
+                                if (keyIndex == treeGrowthUpdateCode.Count - 1) {
+                                    startIndex = codeIndex + keyIndex;
+                                    break;
+                                }
+                            } else {
+                                if (keyIndex > 1) {
+                                    //Log(keyIndex);
+                                }
+                                break;
+                            }
+                        }
+                        //Log(codes[codeIndex].opcode.ToString() + " " + NullSafeToString(codes[codeIndex].operand));
+                    }
+                    if (startIndex != -1) {
+                        codes.RemoveAt(startIndex);
+                        codes.Insert(startIndex, new CodeInstruction(OpCodes.Ldc_R4, 0));
+                    }
+                    return codes.AsEnumerable();
+                }
+            }
+
+            class Code {
+                public OpCode opCode;
+                public string operand;
+
+                public Code(OpCode givenOpCode, string givenOperand) {
+                    opCode = givenOpCode;
+                    operand = givenOperand;
                 }
             }
         }

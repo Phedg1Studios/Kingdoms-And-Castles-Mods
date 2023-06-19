@@ -12,6 +12,7 @@ namespace Phedg1Studios {
                 new List<string>() {
                     "noResourseLand",
                     "noStructure",
+                    "noUnits",
                 },
             };
             public override List<Vector3> sizes => new List<Vector3>() {

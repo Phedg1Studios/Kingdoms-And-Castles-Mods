@@ -9,7 +9,7 @@ using Zat;
 
 namespace Phedg1Studios {
     namespace TerraformWitchSpells {
-        [Mod("TerraformWitchSpells", "v1.0", "Phedg1Studios")]
+        [Mod("Terraform Witch Spells", "v1.0", "Phedg1Studios")]
         public class ModMenuSettings {
             [Setting("")]
             public InteractiveSetting EmptySetting { get; private set; }
@@ -42,12 +42,16 @@ namespace Phedg1Studios {
             public InteractiveSliderSetting DecreaseElevation { get; private set; }
 
             [Setting("Relocate Stone", "How much the spell costs")]
-            [Slider(0, 10000, 500, "500", true)]
+            [Slider(0, 10000, 2000, "2000", true)]
             public InteractiveSliderSetting RelocateStone { get; private set; }
 
             [Setting("Relocate Iron", "How much the spell costs")]
-            [Slider(0, 10000, 500, "500", true)]
+            [Slider(0, 10000, 2000, "2000", true)]
             public InteractiveSliderSetting RelocateIron { get; private set; }
+
+            [Setting("Transmute Rock", "How much the spell costs")]
+            [Slider(0, 10000, 4000, "4000", true)]
+            public InteractiveSliderSetting TransmuteRock { get; private set; }
 
             [Setting("Relocate Witch Hut", "How much the spell costs")]
             [Slider(0, 10000, 2000, "2000", true)]
@@ -76,12 +80,16 @@ namespace Phedg1Studios {
             public InteractiveSliderSetting DecreaseElevation { get; private set; }
 
             [Setting("Relocate Stone", "How many years between uses")]
-            [Slider(0, 100, 0, "0", true)]
+            [Slider(0, 100, 10, "10", true)]
             public InteractiveSliderSetting RelocateStone { get; private set; }
 
             [Setting("Relocate Iron", "How many years between uses")]
-            [Slider(0, 100, 0, "0", true)]
+            [Slider(0, 100, 10, "10", true)]
             public InteractiveSliderSetting RelocateIron { get; private set; }
+
+            [Setting("Transmute Rock", "How many years between uses")]
+            [Slider(0, 100, 25, "25", true)]
+            public InteractiveSliderSetting TransmuteRock { get; private set; }
 
             [Setting("Relocate Witch Hut", "How many years between uses")]
             [Slider(0, 100, 100, "100", true)]
@@ -116,6 +124,10 @@ namespace Phedg1Studios {
             [Setting("Relocate Iron", "Relationship required to unlock")]
             [Slider(0, 10, 7, "7", true)]
             public InteractiveSliderSetting RelocateIron { get; private set; }
+
+            [Setting("Transmute Rock", "Relationship required to unlock")]
+            [Slider(0, 10, 8, "8", true)]
+            public InteractiveSliderSetting TransmuteRock { get; private set; }
 
             [Setting("Relocate Witch Hut", "Relationship required to unlock")]
             [Slider(0, 10, 8, "8", true)]

@@ -2,6 +2,9 @@
 using System.Reflection;
 using UnityEngine;
 
+using System.Collections;
+using System.Collections.Generic;
+
 
 namespace Phedg1Studios {
     namespace BuildingRotationFix {
@@ -39,6 +42,9 @@ namespace Phedg1Studios {
                     }
                 }
             }
+
+            System.Reflection.FieldInfo houseTypeInfo = typeof(Home).GetField("HouseType", BindingFlags.NonPublic | BindingFlags.Instance);
+
         }
     }
 }

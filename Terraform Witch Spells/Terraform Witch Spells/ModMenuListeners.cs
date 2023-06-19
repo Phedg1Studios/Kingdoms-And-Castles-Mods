@@ -85,6 +85,17 @@ namespace Phedg1Studios {
                     }
                 });
 
+                settings.prices.TransmuteRock.OnUpdate.AddListener((setting) => {
+                    foreach (SpellDataCustom spellDataCustom in RegisterSpells.spellData) {
+                        if (spellDataCustom.spellImpl == typeof(StreamerEffect_TransmuteRock)) {
+                            int value = MultipleOfFive(setting.slider.value);
+                            spellDataCustom.cost = value;
+                            settings.prices.TransmuteRock.Label = value.ToString();
+                            break;
+                        }
+                    }
+                });
+
                 settings.prices.RelocateWitchHut.OnUpdate.AddListener((setting) => {
                     foreach (SpellDataCustom spellDataCustom in RegisterSpells.spellData) {
                         if (spellDataCustom.spellImpl == typeof(StreamerEffect_RelocateWitchHut)) {
@@ -173,6 +184,17 @@ namespace Phedg1Studios {
                             int value = Mathf.RoundToInt(setting.slider.value);
                             spellDataCustom.cooldown = value;
                             settings.cooldowns.RelocateIron.Label = value.ToString();
+                            break;
+                        }
+                    }
+                });
+
+                settings.cooldowns.TransmuteRock.OnUpdate.AddListener((setting) => {
+                    foreach (SpellDataCustom spellDataCustom in RegisterSpells.spellData) {
+                        if (spellDataCustom.spellImpl == typeof(StreamerEffect_TransmuteRock)) {
+                            int value = Mathf.RoundToInt(setting.slider.value);
+                            spellDataCustom.cooldown = value;
+                            settings.cooldowns.TransmuteRock.Label = value.ToString();
                             break;
                         }
                     }
@@ -271,6 +293,17 @@ namespace Phedg1Studios {
                     }
                 });
 
+                settings.relationships.TransmuteRock.OnUpdate.AddListener((setting) => {
+                    foreach (SpellDataCustom spellDataCustom in RegisterSpells.spellData) {
+                        if (spellDataCustom.spellImpl == typeof(StreamerEffect_TransmuteRock)) {
+                            int value = Mathf.RoundToInt(setting.slider.value);
+                            spellDataCustom.relationship = (WitchHut.Relationship)value;
+                            settings.relationships.TransmuteRock.Label = value.ToString();
+                            break;
+                        }
+                    }
+                });
+
                 settings.relationships.RelocateWitchHut.OnUpdate.AddListener((setting) => {
                     foreach (SpellDataCustom spellDataCustom in RegisterSpells.spellData) {
                         if (spellDataCustom.spellImpl == typeof(StreamerEffect_RelocateWitchHut)) {
@@ -301,6 +334,7 @@ namespace Phedg1Studios {
                 settings.prices.DecreaseElevation.TriggerUpdate();
                 settings.prices.RelocateStone.TriggerUpdate();
                 settings.prices.RelocateIron.TriggerUpdate();
+                settings.prices.TransmuteRock.TriggerUpdate();
                 settings.prices.RelocateWitchHut.TriggerUpdate();
                 settings.prices.RelocateKeep.TriggerUpdate();
 
@@ -310,6 +344,7 @@ namespace Phedg1Studios {
                 settings.cooldowns.DecreaseElevation.TriggerUpdate();
                 settings.cooldowns.RelocateStone.TriggerUpdate();
                 settings.cooldowns.RelocateIron.TriggerUpdate();
+                settings.cooldowns.TransmuteRock.TriggerUpdate();
                 settings.cooldowns.RelocateWitchHut.TriggerUpdate();
                 settings.cooldowns.RelocateKeep.TriggerUpdate();
 
@@ -319,6 +354,7 @@ namespace Phedg1Studios {
                 settings.relationships.DecreaseElevation.TriggerUpdate();
                 settings.relationships.RelocateStone.TriggerUpdate();
                 settings.relationships.RelocateIron.TriggerUpdate();
+                settings.relationships.TransmuteRock.TriggerUpdate();
                 settings.relationships.RelocateWitchHut.TriggerUpdate();
                 settings.relationships.RelocateKeep.TriggerUpdate();
             }

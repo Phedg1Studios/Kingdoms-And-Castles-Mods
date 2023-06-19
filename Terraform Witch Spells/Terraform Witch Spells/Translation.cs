@@ -33,6 +33,12 @@ namespace Phedg1Studios {
                 { "VotableRelocateIronDescription", new Dictionary<string, string>() {
                     { "en", "The earth shakes as mountains move." },
                 } },
+                { "VotableTransmuteRockTitle", new Dictionary<string, string>() {
+                    { "en", "Transmute Rock" },
+                } },
+                { "VotableTransmuteRockDescription", new Dictionary<string, string>() {
+                    { "en", "The essence of the rock shifts." },
+                } },
                 { "VotableRelocateWitchHutTitle", new Dictionary<string, string>() {
                     { "en", "Relocate Witch Hut" },
                 } },
@@ -55,6 +61,12 @@ namespace Phedg1Studios {
                     { "en", "Decrease Elevation" },
                 } },
                 { "VotableDecreaseElevationDescription", new Dictionary<string, string>() {
+                    { "en", "Without a sound the earth lowers." },
+                } },
+                { "VotableSpawnFishTitle", new Dictionary<string, string>() {
+                    { "en", "Spawn Fish" },
+                } },
+                { "VotableSpawnFishDescription", new Dictionary<string, string>() {
                     { "en", "Without a sound the earth lowers." },
                 } },
                 { "fertilityNotMax", new Dictionary<string, string>() {
@@ -105,11 +117,26 @@ namespace Phedg1Studios {
                 { "iron", new Dictionary<string, string>() {
                     { "en", "There is no iron here, sire." },
                 } },
+                { "rock", new Dictionary<string, string>() {
+                    { "en", "This is not a rock deposit, sire." },
+                } },
+                { "deepWater", new Dictionary<string, string>() {
+                    { "en", "This is not deep water, sire." },
+                } },
+                { "noFish", new Dictionary<string, string>() {
+                    { "en", "There are already fish here, sire." },
+                } },
+                { "fishSurvive", new Dictionary<string, string>() {
+                    { "en", "Fish cannot survive here, sire." },
+                } },
                 { "witch", new Dictionary<string, string>() {
                     { "en", "No witches live here, sire." },
                 } },
                 { "keep", new Dictionary<string, string>() {
                     { "en", "This is not a keep, sire." },
+                } },
+                { "noUnits", new Dictionary<string, string>() {
+                    { "en", "There are people here, sire." },
                 } },
             };
 

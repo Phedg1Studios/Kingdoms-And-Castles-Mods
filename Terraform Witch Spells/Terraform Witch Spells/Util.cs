@@ -6,7 +6,13 @@ namespace Phedg1Studios {
     namespace TerraformWitchSpells {
         public class Util : MonoBehaviour {
             void Update() {
+                if (Input.GetKeyDown(KeyCode.F3)) {
+                    //Cell cell = World.inst.GetCellData(GameUI.inst.GridPointerIntersection());
+                    //Log(cell.x.ToString() + " " + cell.z.ToString());
+                }
                 if (Input.GetKeyDown(KeyCode.F2)) {
+                    //SaveSceneHierarchy();
+                    //LogTrees();
                     //SaveSceneHierarchy();
                     //LogComponentsOfType(typeof(BuildInfoUI));
                     /*
@@ -20,6 +26,33 @@ namespace Phedg1Studios {
                     //LogComponentsOfObject(GameObject.Find("ItemEntryIcon(Clone)"));
                     //LogComponentsOfType(typeof(RoR2.UI.TooltipController));
                 }
+            }
+
+            static public void LogTrees() {
+                Log("-");
+                int floatingCells = 0;
+                List<Vector3> treeCoords = new List<Vector3>();
+                for (int x = 0; x < World.inst.GridWidth; x++) {
+                    for (int z = 0; z < World.inst.GridHeight; z++) {
+                        Cell cell = World.inst.GetCellData(x, z);
+                        if (cell != null) {
+                            if (cell.Type == ResourceType.Water) {
+                                foreach (int treeID in cell.TreeIds) {
+                                    if (treeID != -1) {
+                                        floatingCells += 1;
+                                        treeCoords.Add(new Vector3(cell.x, 0, cell.z));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Log(floatingCells);
+                foreach (Vector3 treeCord in treeCoords) {
+                    Log(treeCord.x + " " + treeCord.z);
+                }
+                Log("--");
             }
 
             static public void Log(object givenObject, bool traceBack = false) {
@@ -36,6 +69,14 @@ namespace Phedg1Studios {
             static public void OnLogMessageReceived(string condition, string stackTrace, LogType type) {
                 if (type == LogType.Exception) {
                     Log("Unhandled Exception: " + condition + "\n" + stackTrace);
+                }
+            }
+
+            static public string NullSafeToString(object givenObject) {
+                if (givenObject != null) {
+                    return givenObject.ToString();
+                } else {
+                    return "null";
                 }
             }
 
@@ -103,8 +144,8 @@ namespace Phedg1Studios {
                 for (int spaceNumber = 0; spaceNumber < givenDepth * 4; spaceNumber++) {
                     workingString += " ";
                 }
-                workingString += givenTransform.gameObject.name + "\n";
-                givenTree += workingString;
+                Log(workingString += givenTransform.gameObject.name);
+                //givenTree += workingString;
                 for (int childIndex = 0; childIndex < givenTransform.childCount; childIndex++) {
                     givenTree = MapHierarchy(givenTransform.GetChild(childIndex), givenDepth + 1, givenTree);
                 }

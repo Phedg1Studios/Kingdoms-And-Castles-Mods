@@ -39,6 +39,10 @@ namespace Example {
             // Called when the spell banner is closed
             // It is recommended you set Timer.Duration here
             // This is where vanilla spells are activated
+            //
+            // If this spell is activated via a twich vote then OnStart will be called
+            // But Activate will not. Use your best judgement for whether
+            // your spell should be twitch votable
             public override void OnStart() {
             }
 

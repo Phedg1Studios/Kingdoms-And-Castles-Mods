@@ -1,0 +1,18 @@
+syntax: glob
+
+.vs/
+obj/
+
+Build/**
+Dependencies/**
+Automatic Rebuild/Shared/**
+Terraform Witch Spells/Shared/**
+
+*.zip
+*.dll
+*.eps
+*.ai
+
+*4K*
+*Zat*
+*1MB*

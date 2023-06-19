@@ -34,6 +34,9 @@ namespace Phedg1Studios {
                     TerrainGen.inst.SetFertileTile(cell.x, cell.z, cell.fertile - 1);
                     TerrainGen.inst.UpdateTileFertility(cell.x, cell.z);
                 }
+                if (isClick) {
+                    FishSystem.inst.SetupProbabilities();
+                }
                 TerrainGen.inst.UpdateTextures();
             }
 

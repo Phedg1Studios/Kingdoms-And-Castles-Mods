@@ -12,6 +12,9 @@ namespace Phedg1Studios {
             static public List<SpellDataCustom> spellData = new List<SpellDataCustom>();
             static public List<GameObject> additionalSpellButtons = new List<GameObject>();
             static public int spellDataOriginalCount = 0;
+            static private bool addedToTwitchList = false;
+
+
 
             // Add custom spell data
             [HarmonyPatch(typeof(WitchHut))]
@@ -128,6 +131,30 @@ namespace Phedg1Studios {
                             __result = spellDataCustom.cost;
                         } else {
                             __result = Mathf.RoundToInt(__result / (1 + i / 10f));
+                        }
+                    }
+                }
+            }
+
+            static public void AddToTwitchList() {
+                if (!addedToTwitchList) {
+                    addedToTwitchList = true;
+                    Color previousColour = new Color();
+                    List<object> uiVotableLayoutList = new List<object>();
+                    for (int votableIndex = 0; votableIndex < TwitchBonus.UIVotableLayout.Length; votableIndex++) {
+                        if (votableIndex != 0 && (votableIndex == TwitchBonus.UIVotableLayout.Length - 1 || TwitchBonus.UIVotableLayout[votableIndex] is VoteListHeading)) {
+                            foreach (SpellDataCustom spellDataCustom in spellData) {
+                                if (spellDataCustom.twitchVotable && spellDataCustom.color == previousColour) {
+                                    uiVotableLayoutList.Add(new Votable() {
+                                        Implementation = spellDataCustom.spellImpl,
+                                        color = spellDataCustom.color,
+                                    });
+                                }
+                            }
+                        }
+                        if (TwitchBonus.UIVotableLayout[votableIndex] is Votable votable) {
+                            previousColour = votable.color;
+                            uiVotableLayoutList.Add(votable);
                         }
                     }
                 }
